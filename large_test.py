@@ -4,6 +4,7 @@ from util import EPSILON, get_beats_from_txt, get_matching_from_txt
 from random import random
 import matplotlib.pyplot as plt
 from large_et_al import *
+from pic import load_done, save
 
 def rand(a):
     b = random() * a
@@ -71,10 +72,10 @@ folder_path = "Prokofiev/Toccata/"
 folder_path = "Beethoven/Piano_Sonatas/18-2/"
 folder_path = "Schumann/Toccata/"
 folder_path = "Bach/Italian_concerto/"
-folder_path = "Balakirev/Islamey/"
 folder_path = "Brahms/Six_Pieces_op_118/2/"
 folder_path = "Liszt/Sonata/"
 folder_path = "Mozart/Piano_sonatas/11-3/"
+folder_path = "Balakirev/Islamey/"
 
 l = []
 
@@ -102,6 +103,8 @@ inputs = [(ind, inputs[ind]) for ind in range(len(inputs))]
 ratio = []
 nb_piece = 0
 
+already_done = load_done()
+
 if hands:
     lh, rh = get_matching_from_txt(path + folder_path + l[0] + ".mid", separate_hands=1)
     lh = fit_matching(lh)
@@ -121,14 +124,16 @@ if hands:
         plt.plot(tmp[0], tmp[2], '.' , markersize=2, label="Naive 5 " + labels[i], color=colors[i])
         del tmp
 else:
-    for perfo in l[:1]:
+    for perfo in l:
+        if perfo in already_done:
+            continue
         try:
             matching = get_matching_from_txt(perfo + ".mid")
             inputs = fit_matching(matching)
             print(perfo)
             nb_piece += 1
         except:
-            inputs = []
+            continue
 
         for ti in range(len(inputs)-1):
                 beat_input, time_input = inputs[ti]
@@ -146,8 +151,8 @@ else:
                 results[6].append(tt.update_and_return_tempo(time_input, debug=0))
 
         tmp = [normalize_tempo(i, min=1, max=2) for i in np.array(results[6][1:]) / np.array(results[5][:-1])]
-        ratio = tmp
-        print(np.std(tmp))
+        #save(perfo, tmp)
+        ratio.append(measure(tmp, 0.15))
 
     # plt.plot(results[0], results[5], '.', label="Naive 5", alpha=0.2)
     #plt.plot(results[0], results[3], '-' , markersize=2, label="Timekeeper")
@@ -168,5 +173,7 @@ else:
 
 plt.yscale("linear")
 plt.hist(ratio, bins=100)
-plt.title("Example of Standard Deviation of TempoTracker for " + folder_path[:-1])
+#print(ratio)
+plt.title("A view of TempoTracker performance for the whole (n)-ASAP dataset (" + str(nb_piece) + " pieces)")
+#plt.title("Example of TempoTracker performance for " + folder_path[:-1])
 plt.show()

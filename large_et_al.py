@@ -513,11 +513,11 @@ def find_minimal_integer_ratio(ratio, precision=0.0001):
     return 1
 
 class Estimator():
-    def __init__(self, accuracy=1800, limit=1.9, eq_test=0.0001) -> None:
+    def __init__(self, accuracy=1800, limit=4/3, eq_test=0.0001) -> None:
         """ naive version : no memory """
         self.accuracy = accuracy
         self.limit = limit
-        self.dt = (limit - 1) / accuracy
+        self.dt = abs(limit - 1) / accuracy
         self.eq_test = eq_test
 
     def dist(self, a, b, abso=0):
@@ -539,14 +539,14 @@ class Estimator():
         # Test if a is a power of 2
         log2 = np.floor(np.log2(a))
         for t in (log2, log2+1):
-            if -16 <= t <= 16:
+            if abs(t) <= 9:
                 b = 2**t
                 best_try = self.new_best(best_try, b, self.dist(a, b))
 
         # Test if 3*a is a power of 2 (triolet, but not only)
         log2 = np.floor(np.log2(3*a))
         for t in (log2, log2+1):
-            if -2 <= t <= 2 and 0:
+            if abs(t) <= 2 and 0:
                 b = (2**t) / 3
                 best_try = self.new_best(best_try, b, self.dist(a, b))
 
@@ -564,7 +564,7 @@ class Estimator():
             if i == 0:
                 values = (1,)
             else:
-                values = (1 + self.dt * i, 1 / (1 + self.dt*i))
+                values = (1 + self.dt * i, 1 - (self.dt*i))
             for v in values:
                 dist_to_solution = self.dist(v, t1 * self.E(v*t2))
                 best_try = self.new_best(best_try, v, dist_to_solution)
@@ -607,3 +607,92 @@ class TempoTracker():
             self.current_time = next_time
 
         return self.get_tempo()
+
+
+class Circle():
+    def __init__(self, tab, x, i=0) -> None:
+        self.t = tab.copy()
+        self.count = [1]
+        ind = 0
+        while ind + 1 < len(self.t):
+            if self.t[ind] == self.t[ind+1]:
+                self.t.pop(ind+1)
+                self.count[-1] += 1
+            else:
+                self.count.append(1)
+                ind += 1
+        self.x = x
+        self.start = (i, 0)
+        self.sum = sum(self.count)
+
+    def get(self, a):
+        i, k = a
+        return self.t[i] + self.x*k
+
+    def get_next(self, a):
+        i, k = a
+        if i + 1 == len(self.t):
+            return (0, k+1)
+        return (i+1, k)
+
+    def get_previous(self, a):
+        i, k = a
+        if i == 0:
+            return (len(self.t) - 1, k-1)
+        return (i-1, k)
+    
+    def get_cardinal(self, a1, a2):
+        i1, k1 = a1
+        i2, k2 = a2
+        s = 0
+        for i in range(len(self.t)):
+            c = min(0, k2 - k1 - 1)
+            if i >= i1:
+                c+=1
+            if i <= i2:
+                c+=1
+            s += self.count[i] * c
+        return s
+    
+    def length(self):
+        return self.sum
+
+def measure(spectre, delta, x=1):
+    spectre.sort()
+    c = Circle(spectre, x)
+    T = 0
+    S = 0
+    ind_end = c.start
+    ind_start = ind_end
+    d = c.get(ind_end) - delta 
+    for _ in range(c.length() - 1):
+        ind_start = c.get_previous(ind_start)
+        if abs(c.get(ind_start) - d) > delta:
+            ind_start = c.get_next(ind_start)
+            break
+
+    while 1:
+        d1 = c.get(ind_start) + delta           # Changement de l'indice de début
+        d2 = c.get(c.get_next(ind_end)) - delta # Changement de l'indice actuel : un nouveau point entre dans le champ
+
+        next_d = min(d1, d2)
+        p = c.get_cardinal(ind_start, ind_end) / c.length()
+        S = max(S, p)
+        #S += p * (next_d - d)
+        T += next_d - d
+        d = next_d
+
+        if d1 <= d2:
+            if ind_start == ind_end:
+                ind_start = ind_end = c.get_next(ind_end)
+                if ind_end[0] == c.start[0]:
+                    break
+            else:
+                ind_start = c.get_next(ind_start)
+        else:
+            ind_end = c.get_next(ind_end)
+            if ind_end[0] == c.start[0]:
+                break
+
+    #return S / T
+    return S
