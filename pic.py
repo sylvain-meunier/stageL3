@@ -12,12 +12,15 @@ def save(perfo, data, path="measure.txt"):
 class Timer():
     def __init__(self, maxi, current=0) -> None:
         self.maxi = maxi
-        self.current = 0
-        self.progress = current
+        self.current = current
+        self.progress = self.get_progress()
+
+    def get_progress(self) :
+        return int((self.current * 100) / self.maxi)
     
     def update(self):
         self.current += 1
-        tmp = int((self.current * 100) / self.maxi)
+        tmp = self.get_progress()
         if tmp > self.progress:
             print("Loading data :", self.progress, "%")
             self.progress = tmp
