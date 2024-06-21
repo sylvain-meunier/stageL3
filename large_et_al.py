@@ -641,6 +641,10 @@ class Circle():
             return (len(self.t) - 1, k-1)
         return (i-1, k)
     
+    def get_count(self, a):
+        i, _ = a
+        return self.count[i]
+
     def get_cardinal(self, a1, a2):
         i1, k1 = a1
         i2, k2 = a2
@@ -661,7 +665,6 @@ def measure(spectre, delta, x=1):
     spectre.sort()
     c = Circle(spectre, x)
     T = 0
-    S = 0
     ind_end = c.start
     ind_start = ind_end
     d = c.get(ind_end) - delta 
@@ -671,15 +674,22 @@ def measure(spectre, delta, x=1):
             ind_start = c.get_next(ind_start)
             break
 
+    p = c.get_cardinal(ind_start, ind_end) / c.length()
+    S = p
+
     while 1:
         d1 = c.get(ind_start) + delta           # Changement de l'indice de début
         d2 = c.get(c.get_next(ind_end)) - delta # Changement de l'indice actuel : un nouveau point entre dans le champ
 
         next_d = min(d1, d2)
-        p = c.get_cardinal(ind_start, ind_end) / c.length()
+        if d1 <= d2:
+            #p = c.get_cardinal(ind_start, ind_end) / c.length()
+            p -= c.get_count(ind_start) / c.length()
+        if d2 <= d1:
+            p += c.get_count(ind_end) / c.length()
         S = max(S, p)
         #S += p * (next_d - d)
-        T += next_d - d
+        #T += next_d - d
         d = next_d
 
         if d1 <= d2:
@@ -689,7 +699,7 @@ def measure(spectre, delta, x=1):
                     break
             else:
                 ind_start = c.get_next(ind_start)
-        else:
+        if d2 <= d1:
             ind_end = c.get_next(ind_end)
             if ind_end[0] == c.start[0]:
                 break
