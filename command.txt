@@ -1,0 +1,5 @@
+static library :
+clang++ -O3 -shared -std=c++17 -fPIC measure.cpp -o libmeasure.so -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
+
+python librairy :
+clang++ -O3 -shared -std=c++17 -undefined dynamic_lookup -fPIC `/usr/local/bin/python3 -m pybind11 --includes` -I /usr/include/python3.10 -I .  pybind11_wrapper.cpp -o py_measure`/usr/local/bin/python3.10-config --extension-suffix` -L. -lmeasure -Wl,-rpath,.

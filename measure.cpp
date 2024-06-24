@@ -3,15 +3,23 @@
 #include <iostream>
 #include <algorithm>
 
+double distance(double a, double b, double x) {
+    if (a > b) {
+        return distance(b, a, x);
+    }
+    //return fabs(a-b);
+    return fmin(fabs(a - b), fabs(a+x - b));
+}
+
 double get_measure(std::vector<double> spectre, double delta, double x, int i) {
     std::sort(spectre.begin(), spectre.end());
     Circle<double> c = Circle<double>(spectre, x, i);
     couple ind_end = c.get_start();
     couple ind_start = ind_end;
     int d = c.get(ind_end) - delta;
-    for (int i = 0; i < c.length() - 1; i++) {
+    for (int i = 0; i < c.size() - 1; i++) {
         ind_start = c.get_previous(ind_start);
-        if (fabs(c.get(ind_start) - d) > delta) {
+        if (distance(c.get(ind_start), d, x) > delta) {
             ind_start = c.get_next(ind_start);
             break;
         }

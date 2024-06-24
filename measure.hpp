@@ -31,6 +31,10 @@ class Circle {
         }
     }
 
+    int size() {
+        return t.size();
+    }
+
     bool is_start(couple end) {
         auto [i, k] = start;
         auto [j, l] = end;
@@ -43,7 +47,7 @@ class Circle {
 
     double get(couple a) {
         auto [i, k] = a;
-        return t[i] + x*k;
+        return t[i]+ x*k;
     }
 
     couple get_next(couple a) {
