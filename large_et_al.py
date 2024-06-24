@@ -3,6 +3,7 @@ import scipy
 import numpy as np
 import scipy.special
 from util import EPSILON
+from py_measure import cpp_measure
 from kappa import kappa_list, kappa_table
 
 RAD = np.pi * 2
@@ -327,17 +328,21 @@ class Oscillateur():
     def entrain(self, phi, kappa):
         """ Entrainement Function based on Mises-Von first derivative distribution """
         return (1.0/(2.0*np.pi*np.exp(kappa))) * np.exp(kappa * np.cos(2.0*np.pi*phi))*np.sin(2.0*np.pi*phi)
+    
+    def consider_score(self, phi, current_time, p):
+        if ((current_time - self.last_time) >= p):
+            if (phi < 0):
+                return -phi
+        elif phi > 0:
+            return -phi
+        return phi
 
     def update_parameters(self, n, score_phase, current_time, debug=0):
         """ Update internal parameters, according to the model equations """
         phi = (self.phase - score_phase)
         p = self.period # Update the period according to the expected next IOI (double, etc...)
 
-        if ((current_time - self.last_time) >= p):
-            if (phi < 0):
-                phi *= -1
-        elif phi > 0:
-            phi *= -1
+        phi = self.consider_score(phi, current_time, p)
 
         # Updating kappa
         # Update error accumulation
@@ -502,6 +507,32 @@ class BeatKeeper():
         self.error += delta * (iter-1)
         return self.get_tempo()
 
+class Oscillateur_absolute(Oscillateur):
+    def normalize_phase(self, phi):
+        return phi
+    def consider_score(self, phi, current_time, p):
+        return phi
+
+class LargeKeeper(Oscillateur_absolute):
+    def __init__(self, tempo_init=None, phase=0, min_kappa=1, last_time=0, eta_phi=1, eta_p=1, eta_s=0.9) -> None:
+        super().__init__(tempo_init, phase, min_kappa, last_time, eta_phi, eta_p, eta_s)
+        self.previous_time = None
+        self.previous_phase = 0
+    
+    def get_tempo(self):
+        if self.previous_time is None:
+            self.previous_time = self.last_time
+            self.previous_phase = self.phase
+            return super().get_tempo()
+        delta_t = self.last_time - self.previous_time
+        delta_phi = self.phase - self.previous_phase + int(self.last_time / self.period) - int(self.previous_time / self.period)
+        if delta_t < EPSILON:
+            return super().get_tempo()
+        self.previous_phase = self.phase
+        self.previous_time = self.last_time
+        tempo = 60 * delta_phi / delta_t # bpm
+        return tempo
+
 def fit_to_accuracy(acc, value):
     return int(value * acc) / acc
 
@@ -608,101 +639,15 @@ class TempoTracker():
 
         return self.get_tempo()
 
+import time
+def measure(spectre, delta, x=1, i=0):
+    t = time.time()
+    a = cpp_measure(spectre, delta, x, i)
+    print("Temps :", time.time() - t)
+    return a
 
-class Circle():
-    def __init__(self, tab, x, i=0) -> None:
-        self.t = tab.copy()
-        self.count = [1]
-        ind = 0
-        while ind + 1 < len(self.t):
-            if self.t[ind] == self.t[ind+1]:
-                self.t.pop(ind+1)
-                self.count[-1] += 1
-            else:
-                self.count.append(1)
-                ind += 1
-        self.x = x
-        self.start = (i, 0)
-        self.sum = sum(self.count)
+def create_pert(avg, count, pert=0.15):
+    t = [avg * (1 + np.random.random() * pert) for _ in range(count)]
+    return [i*2 if i < 1 else i for i in t]
 
-    def get(self, a):
-        i, k = a
-        return self.t[i] + self.x*k
-
-    def get_next(self, a):
-        i, k = a
-        if i + 1 == len(self.t):
-            return (0, k+1)
-        return (i+1, k)
-
-    def get_previous(self, a):
-        i, k = a
-        if i == 0:
-            return (len(self.t) - 1, k-1)
-        return (i-1, k)
-    
-    def get_count(self, a):
-        i, _ = a
-        return self.count[i]
-
-    def get_cardinal(self, a1, a2):
-        i1, k1 = a1
-        i2, k2 = a2
-        s = 0
-        for i in range(len(self.t)):
-            c = min(0, k2 - k1 - 1)
-            if i >= i1:
-                c+=1
-            if i <= i2:
-                c+=1
-            s += self.count[i] * c
-        return s
-    
-    def length(self):
-        return self.sum
-
-def measure(spectre, delta, x=1):
-    spectre.sort()
-    c = Circle(spectre, x)
-    T = 0
-    ind_end = c.start
-    ind_start = ind_end
-    d = c.get(ind_end) - delta 
-    for _ in range(c.length() - 1):
-        ind_start = c.get_previous(ind_start)
-        if abs(c.get(ind_start) - d) > delta:
-            ind_start = c.get_next(ind_start)
-            break
-
-    p = c.get_cardinal(ind_start, ind_end) / c.length()
-    S = p
-
-    while 1:
-        d1 = c.get(ind_start) + delta           # Changement de l'indice de début
-        d2 = c.get(c.get_next(ind_end)) - delta # Changement de l'indice actuel : un nouveau point entre dans le champ
-
-        next_d = min(d1, d2)
-        if d1 <= d2:
-            #p = c.get_cardinal(ind_start, ind_end) / c.length()
-            p -= c.get_count(ind_start) / c.length()
-        if d2 <= d1:
-            p += c.get_count(ind_end) / c.length()
-        S = max(S, p)
-        #S += p * (next_d - d)
-        #T += next_d - d
-        d = next_d
-
-        if d1 <= d2:
-            if ind_start == ind_end:
-                ind_start = ind_end = c.get_next(ind_end)
-                if ind_end[0] == c.start[0]:
-                    break
-            else:
-                ind_start = c.get_next(ind_start)
-        if d2 <= d1:
-            ind_end = c.get_next(ind_end)
-            if ind_end[0] == c.start[0]:
-                break
-
-    #return S / T
-    return S
+print(measure([1]*10 + [1.99]*10, 0.01))
