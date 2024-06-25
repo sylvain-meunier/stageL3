@@ -29,15 +29,19 @@ class Timer():
         if self.current == self.maxi:
             print(self.end)
 
+def exec_from_txt(path, fct, t):
+    with open(path, 'r') as f:
+        for line in f:
+            dec = line.split(',')
+            if len(dec) < 2:
+                continue
+            fct(dec[0], [float(i) for i in dec[1:]])
+            t.update()
 
 def load_from_txt(path, nb_line=1018):
     l = []
     t = Timer(nb_line)
-    with open(path, 'r') as f:
-        for line in f:
-            dec = line.split(',')
-            l.append([dec[0]] + [float(i) for i in dec[1:]])
-            t.update()
+    exec_from_txt(path, lambda x, y : l.append([[x] + y]), t)
     return l
 
 def txt_to_pickle(path="measure.txt"):

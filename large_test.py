@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from large_et_al import *
 from pic import load_done, save
 
+
 def rand(a):
     b = random() * a
     if b > a/2:
@@ -95,7 +96,7 @@ def find_recursive(current_path, rec=False):
             if not "." in f:
                 find_recursive(current_path + '/' + f, rec=rec)
 
-find_recursive(path + folder_path, rec=1)
+find_recursive(path, rec=1)
 #inputs = get_beats_from_txt(path + folder_path + l[0] + "_annotations.txt", accept_br=1)
 inputs = [(ind, inputs[ind]) for ind in range(len(inputs))]
 
@@ -103,7 +104,8 @@ inputs = [(ind, inputs[ind]) for ind in range(len(inputs))]
 ratio = []
 nb_piece = 0
 
-already_done = load_done()
+#already_done = load_done()
+already_done = []
 
 if hands:
     lh, rh = get_matching_from_txt(path + folder_path + l[0] + ".mid", separate_hands=1)
@@ -125,12 +127,12 @@ if hands:
         del tmp
 else:
     for perfo in l:
-        if perfo in already_done:
+        if perfo in already_done or not 'Mozart' in perfo:
             continue
         try:
             matching = get_matching_from_txt(perfo + ".mid")
             inputs = fit_matching(matching)
-            print(perfo)
+            #print(perfo)
             nb_piece += 1
         except:
             continue
@@ -151,8 +153,14 @@ else:
                 results[6].append(tt.update_and_return_tempo(time_input, debug=0))
 
         tmp = [normalize_tempo(i, min=1, max=2) for i in np.array(results[6][1:]) / np.array(results[5][:-1])]
+        ratio.append(measure(tmp, 0.075))
+        if 'Mozart' in perfo:
+            print(ratio[-1])
+            plt.title(perfo)
+            plt.xscale("log")
+            plt.hist(tmp, bins=100)
+            plt.show()
         #save(perfo, tmp)
-        ratio.append(measure(tmp, 0.15))
 
     # plt.plot(results[0], results[5], '.', label="Naive 5", alpha=0.2)
     #plt.plot(results[0], results[3], '-' , markersize=2, label="Timekeeper")

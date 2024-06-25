@@ -639,15 +639,9 @@ class TempoTracker():
 
         return self.get_tempo()
 
-import time
 def measure(spectre, delta, x=1, i=0):
-    t = time.time()
-    a = cpp_measure(spectre, delta, x, i)
-    print("Temps :", time.time() - t)
-    return a
+    return cpp_measure(spectre, delta, x, i)
 
 def create_pert(avg, count, pert=0.15):
     t = [avg * (1 + np.random.random() * pert) for _ in range(count)]
     return [i*2 if i < 1 else i for i in t]
-
-print(measure([1]*10 + [1.99]*10, 0.01))

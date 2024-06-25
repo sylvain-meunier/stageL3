@@ -75,19 +75,17 @@ class Circle {
         auto [i1, k1] = a1;
         auto [i2, k2] = a2;
         int s = 0;
+        int delta = i2 - i1 + (k2 - k1) * t.size();
+        int q = delta / t.size();
 
-        if (k1 == k2) {
-            for (int i = 0; i < t.size(); i++) {
-                int c = fmax(0, k2-k1-1);
-                c += (i >= i1 && i <= i2);
-                s += count[i] * c;
-            }
-        } else {
-            for (int i = 0; i < t.size(); i++) {
-                int c = fmax(0, k2-k1-1);
+        for (int i = 0; i < t.size(); i++) {
+            int c = q;
+            if (i1 > i2) {
                 c += (i >= i1 || i <= i2);
-                s += count[i] * c;
+            } else {
+                c += (i >= i1 && i <= i2);
             }
+            s += count[i] * c;
         }
         return s;
     }

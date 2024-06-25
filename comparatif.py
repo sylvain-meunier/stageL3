@@ -151,11 +151,11 @@ else:
                 results[6].append(tt.update_and_return_tempo(time_input, debug=0))
                 #results[1].append(lg.update_and_return_tempo(beat_input, time_input))
 
-        #tmp = [normalize_tempo(i, min=1, max=2) for i in np.array(results[6][1:]) / np.array(results[5][:-1])]
-        naive = results[5][:-1]
-        estim = results[6][1:]
-        tmp = [normalize_tempo(estim[i] / estim[i+1] * naive[i+1] / naive[i], min=1, max=2) for i in range(len(naive) - 1)]
-        plt.title(str(measure(tmp, 0.15)))
+        tmp = [normalize_tempo(i, min=1, max=2) for i in np.array(results[6][1:]) / np.array(results[5][:-1])]
+        #naive = results[5][:-1]
+        #estim = results[6][1:]
+        #tmp = [normalize_tempo(estim[i] / estim[i+1] * naive[i+1] / naive[i], min=1, max=2) for i in range(len(naive) - 1)]
+        #plt.title(str(measure(tmp, 0.15)))
         plt.hist(tmp, bins=100)
         plt.show()
 
