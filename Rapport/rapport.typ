@@ -27,7 +27,9 @@
 }
 
 = Introduction
-Nous présentons ici quelques résultats obtenus autour de la notion de #gls("tempo") en informatique musicale, ou @mir, notamment dans le domaine d'estimation du #gls("tempo"). En ce qui concerne le temps réel, l'une des problèmatiques les plus saillante est celle de l'accompagnement automatique d'un soliste @raphael_probabilistic_2001 @antescofo. L'objectif d'un tel modèle est alors de synchroniser la lecture d'une partition par une machine avec le jeu d'au moins un humain. Récemment, une approche reprenant @antescofo a été développé pour un usage commercial. #footnote[https://metronautapp.com/]
+Nous présentons ici quelques résultats obtenus autour de la notion de #gls("tempo") en informatique musicale, ou @mir, notamment dans le domaine d'estimation du #gls("tempo"). En ce qui concerne le temps réel, l'une des problèmatiques les plus saillante est celle de l'accompagnement automatique d'un soliste @raphael_probabilistic_2001 @antescofo. L'objectif d'un tel modèle est alors de synchroniser la lecture d'une partition par une machine avec le jeu d'au moins un humain. Récemment, une approche reprenant @antescofo a été développé pour un usage commercial. #footnote[https://metronautapp.com/] Un pré-calcul non trivial nécessaire à une bonne approche consiste à "aligner" les notes d'une performance (jouées par un humain et perçues par le système) avec celle d'une représentation symbolique interne (partition, ou fichier midi). Ce problème d'alignement de séquences est très similaire à son équivalent textuel (on peut de fait voir une partition ou sa réalisation comme un mot sur un alphabet musical). On dispose de deux outils pour résoudre ce problème : un algorithme de programmation dynamique revenant à chercher un plus court chemin @muller_memory-restricted_nodate et un modèle de Markov caché @nakamura_performance_2017.\
+
+Parmi les quatre paramètres qui caractérisent  une performance, @peter2023sounding en distingue deux : le @tempo, et l'@articulation ; mettant de côté le _timing_ et les @nuances. Cette hiérarchie est assez représentative des préoccupations de la communauté, aussi nous nous contenterons de la suivre, [et nous chercherons à lier articulation et tempo]. Ce dernier possède une place prépondérante dans la littérature. Si des modèles probabilistes @raphael_probabilistic_2001 @nakamura_stochastic_2015 @nakamura_outer-product_2014 sont d'abord développés, ainsi que des modèles physiques, voire neurologiques @large_dynamics_1999 @schulze_keeping_2005 ; la communauté s'est tournée plus récemment vers des approches comprenant des réseaux de neuronnes, ce qui donne lieu à l'apparition d'approches hybrides @shibata_non-local_2021. A l'instar de ces exemples, on se concentrera ici sur des méthodes explicables mathématiquement et/ou musicalement.
 
 
 = Estimation du tempo
@@ -76,7 +78,9 @@ Un premier objectif a été de fusionner les approches de @large_dynamics_1999 e
 #nb_eq[$p_(n+1) = p_n 1 / (1 - (p_n eta_Phi F(Phi_n, kappa_n)) / (t_(n+1) - t_n))$] <beattracker>\
 On remarque que, pour $Delta_t = t_(n+1) - t_n >> p_n eta_Phi F(Phi_n, kappa_n)$ dans @beattracker, on obtient :
 $p_(n+1) = p_n (1 + p_n / Delta_t eta_Phi F(Phi_n, kappa_n))$. Quitte à poser $eta_p = p_n / Delta_t eta_Phi$ on retrouve @large2.\
-Les modèles sont donc équivalents sous ces conditions. En pratique (voir @ann2), on obtient des résultats très similaires à @large_dynamics_1999, avec un paramètre constant en moins. Cependant, ce modèle n'offre guère plus de garanties _a priori_ que @large_dynamics_1999.
+Les modèles sont donc équivalents sous ces conditions. En pratique (voir @ann2), on obtient des résultats très similaires à @large_dynamics_1999, avec un paramètre constant en moins. Bien que ce modèle n'offre guère plus de garanties _a priori_ que @large_dynamics_1999, il est toutefois nettement plus aisé d'en faire l'analyse par rapport à un tempo canonique. On peut ainsi montrer  que : #nb_eq[$alpha_(n+1) = alpha_n (1 + (T_n^* - T_(n+1)^*) / (T_(n+1)^*^2) b_(n+1) / (Delta t_n)) - eta_Phi F(Phi_n) / (Delta b_n)$]
+où $forall n in NN, alpha_n = T_n / T_n^*$.\
+Par ailleurs, on montre en @ann2 que ce modèle possède les mêmes garanties théoriques que @large_dynamics_1999 dans une situation idéalisée simple.
 
 === TempoTracker
 
@@ -158,6 +162,34 @@ On considérant $Phi_n$ comme le déphasage entre l'oscillateur de période $p_n
     (
       key:"phrase",
       short:"phrase",
+      desc:"",
+      group:"Définitions"
+    ),
+
+    (
+      key:"poly",
+      short:"polyphonique",
+      desc:"",
+      group:"Définitions"
+    ),
+
+    (
+      key:"mono",
+      short:"monophonique",
+      desc:"",
+      group:"Définitions"
+    ),
+
+    (
+      key:"articulation",
+      short:"articulation",
+      desc:"",
+      group:"Définitions"
+    ),
+
+    (
+      key:"nuances",
+      short:"nuances",
       desc:"",
       group:"Définitions"
     ),
