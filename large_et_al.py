@@ -5,6 +5,7 @@ import scipy.special
 from util import EPSILON
 from py_measure import cpp_measure
 from kappa import kappa_list, kappa_table
+import random as rand
 
 RAD = np.pi * 2
 
@@ -608,9 +609,23 @@ class Estimator():
         return best_try[0]
 
 
+class RandomEstimator(Estimator):
+    def __init__(self, accuracy=1800, limit=4 / 3, eq_test=0.0001, reg_p = 5) -> None:
+        super().__init__(accuracy, limit, eq_test)
+        self.poss = [2**i for i in range(-4, 5)] * reg_p # common regular division
+        self.poss += [3**i for i in range(-3, 4)]
+
+    def E(self, _):
+        return rand.choice(self.poss)
+
+
+class ConsistentEstimator(Estimator):
+    """ An estimator ensuring the consistency of the values it produces """
+
+
 class TempoTracker():
-    def __init__(self, tempo_init, init_time=0) -> None:
-        self.estimator = Estimator()
+    def __init__(self, estimator, tempo_init, init_time=0) -> None:
+        self.estimator = estimator
         self.tempo = tempo_init
         self.last_time = None
         self.current_time = init_time
@@ -638,6 +653,7 @@ class TempoTracker():
             self.current_time = next_time
 
         return self.get_tempo()
+
 
 def measure(spectre, delta, x=1, i=0):
     return cpp_measure(spectre, delta, x, i)

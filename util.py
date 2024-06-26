@@ -1,10 +1,12 @@
 
+import os
 import symusic
 import pandas as pd
 from pathlib import Path
 
 EPSILON = 0.02 # s
 DEFAULT_TEMPO = 120 # bpm
+path = "../Database/nasap-dataset-main/"
 
 def get_beats_from_txt(ann_path, accept_br=False):
     """Get the beats time from the text annotations
@@ -127,3 +129,22 @@ def get_matching_from_txt(midi_path, separate_hands=False):
         return left_hand, right_hand
 
     return result_matching
+
+def find_recursive(l, current_path, rec=False):
+    listdir = os.listdir(current_path)
+    midi = False
+    for f in listdir:
+        if ".mid" in f:
+            midi = True
+            f = f.split('.')
+            if f[-1] != "mid" or "midi_score" in f[0]:
+                continue
+            if f[0] + ".match" in listdir:
+                l.append(current_path + '/' + f[0])
+    if rec and not midi:
+        for f in listdir:
+            if not "." in f:
+                find_recursive(l, current_path + '/' + f, rec=rec)
+
+def fit_matching(inp):
+    return [(score_note["onset_beat"], real_note["onset_sec"]) for score_note, real_note in inp]

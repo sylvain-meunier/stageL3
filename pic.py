@@ -1,14 +1,6 @@
 import time
 import pickle as pi
 
-
-def save(perfo, data, path="measure.txt"):
-    with open(path, 'a') as f:
-        f.write(perfo + ',')
-        for d in data[:-1]:
-            f.write(str(d)[:2+5] + ',') # 5 decimal precision
-        f.write(str(data[-1])[:2+5] + '\n')
-
 class Timer():
     def __init__(self, maxi, current=0, msg="Loading data :", end="Task done.") -> None:
         self.maxi = maxi
@@ -29,25 +21,37 @@ class Timer():
         if self.current == self.maxi:
             print(self.end)
 
-def exec_from_txt(path, fct, t):
-    with open(path, 'r') as f:
-        for line in f:
-            dec = line.split(',')
-            if len(dec) < 2:
-                continue
-            fct(dec[0], [float(i) for i in dec[1:]])
-            t.update()
+
+def save(perfo, data, path="measure.txt"):
+    with open(path, 'a') as f:
+        f.write(perfo + ',')
+        for d in data[:-1]:
+            f.write(str(d)[:2+5] + ',') # 5 decimal precision
+        f.write(str(data[-1])[:2+5] + '\n')
+
+def exec_from_txt(path, fct, t, already_done=[]):
+    try:
+        with open(path, 'r') as f:
+            for line in f:
+                dec = line.split(',')
+                if len(dec) < 2:
+                    continue
+                if dec[0] not in already_done:
+                    fct(dec[0], [float(i) for i in dec[1:]])
+                t.update()
+    except:
+        pass
 
 def load_from_txt(path, nb_line=1018):
     l = []
     t = Timer(nb_line)
-    exec_from_txt(path, lambda x, y : l.append([[x] + y]), t)
+    exec_from_txt(path, lambda x, y : l.append([x] + y), t)
     return l
 
 def txt_to_pickle(path="measure.txt"):
     l = load_from_txt(path)
 
-    with open("measure.pick", 'wb') as f:
+    with open(path.split('.')[0] + ".pick", 'wb') as f:
         pi.dump(l, f)
 
 def load_pick(path="measure.pick"):

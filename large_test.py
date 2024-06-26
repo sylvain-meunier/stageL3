@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from util import EPSILON, get_beats_from_txt, get_matching_from_txt
+from util import EPSILON, get_beats_from_txt, fit_matching, get_matching_from_txt, find_recursive, path
 from random import random
 import matplotlib.pyplot as plt
 from large_et_al import *
@@ -13,9 +13,6 @@ def rand(a):
         return b  - a
     return b
 
-def fit_matching(inp):
-    return [(score_note["onset_beat"], real_note["onset_sec"]) for score_note, real_note in inp]
-
 hands = 0
 init_bpm = 53
 t = Oscillateur2(tempo_init=init_bpm, eta_s=1, eta_p=0.17, eta_phi=2)
@@ -24,7 +21,7 @@ tempo = TimeKeeper(tempo_init=init_bpm, alpha=0.5, beta=0.3)
 tm = Oscillateur(tempo_init=init_bpm, eta_s=0.7, eta_p=0.9)
 double_osc = TempoModel(ratio=4, alpha=0.8, tempo_init=init_bpm)
 bk = BeatKeeper(tempo_init=init_bpm, eta_phi=0.81, min_kappa=1)
-tt = TempoTracker(tempo_init=init_bpm)
+tt = TempoTracker(Estimator(), tempo_init=init_bpm)
 
 inputs = []
 results = ([], [], [], [], [], [], [], [], [])
@@ -68,7 +65,6 @@ def fit(a, maxi=240, mini=20):
 
 #fit = normalize_tempo
 
-path = "../Database/nasap-dataset-main/"
 folder_path = "Prokofiev/Toccata/"
 folder_path = "Beethoven/Piano_Sonatas/18-2/"
 folder_path = "Schumann/Toccata/"
@@ -79,24 +75,8 @@ folder_path = "Mozart/Piano_sonatas/11-3/"
 folder_path = "Balakirev/Islamey/"
 
 l = []
+find_recursive(l, path, rec=1)
 
-def find_recursive(current_path, rec=False):
-    listdir = os.listdir(current_path)
-    midi = False
-    for f in listdir:
-        if ".mid" in f:
-            midi = True
-            f = f.split('.')
-            if f[-1] != "mid" or "midi_score" in f[0]:
-                continue
-            if f[0] + ".match" in listdir:
-                l.append(current_path + '/' + f[0])
-    if rec and not midi:
-        for f in listdir:
-            if not "." in f:
-                find_recursive(current_path + '/' + f, rec=rec)
-
-find_recursive(path, rec=1)
 #inputs = get_beats_from_txt(path + folder_path + l[0] + "_annotations.txt", accept_br=1)
 inputs = [(ind, inputs[ind]) for ind in range(len(inputs))]
 
