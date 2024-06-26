@@ -33,7 +33,6 @@ double get_measure(std::vector<double> spectre, const double delta, const double
     int S = p;
 
     int h = 0;
-
     while (h+1 < c.size()) {
         double d1 = delta - distance(c.get(ind_start), d, x); // Next start index change
         if (c.get(ind_start) > d) {

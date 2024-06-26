@@ -17,16 +17,15 @@ class Circle {
     couple start;
 
     public:
-    Circle(std::vector<T> spectre, double x, int i) : t(std::vector<double>(spectre)), count(std::vector<int>()), x(x), len(t.size()), start(couple(i, 0)) {
+    Circle(std::vector<T> spectre, double x, int i) : t(std::vector<T>()), count(std::vector<int>()), x(x), len(spectre.size()), start(couple(i, 0)) {
         count.push_back(1);
-        int ind = 0;
-        while (ind + 1 < t.size()) {
-            if (t[ind] == t[ind + 1]) {
-                t.erase(t.begin() + ind+1);
-                count[count.size() - 1] += 1;
+        t.push_back(spectre[0]);
+        for (unsigned int ind = 0; ind + 1 < spectre.size(); ind++) {
+            if (spectre[ind] == spectre[ind + 1]) {
+                count[count.size() - 1]++;
             } else {
                 count.push_back(1);
-                ind++;
+                t.push_back(spectre[ind+1U]);
             }
         }
     }
