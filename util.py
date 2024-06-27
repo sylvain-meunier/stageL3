@@ -148,3 +148,10 @@ def find_recursive(l, current_path, rec=False):
 
 def fit_matching(inp):
     return [(score_note["onset_beat"], real_note["onset_sec"]) for score_note, real_note in inp]
+
+def get_current_piece(perfo, path):
+    """ Return only the name of the current composition """
+    k = len(path.split('/'))
+    for i in perfo.split('/')[k:-1]:
+        s += i + '/'
+    return s
