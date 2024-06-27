@@ -612,7 +612,7 @@ class Estimator():
 class RandomEstimator(Estimator):
     def __init__(self, accuracy=1800, limit=4 / 3, eq_test=0.0001, reg_p = 5) -> None:
         super().__init__(accuracy, limit, eq_test)
-        self.poss = [2**i for i in range(-4, 5)] * reg_p # common regular division
+        self.poss = [2**i for i in range(-4, 5)] * reg_p # Common regular division
         self.poss += [3**i for i in range(-3, 4)]
 
     def E(self, _):
