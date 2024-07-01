@@ -621,6 +621,18 @@ class RandomEstimator(Estimator):
 
 class ConsistentEstimator(Estimator):
     """ An estimator ensuring the consistency of the values it produces """
+    def possible_ACD(serie, tau, accuracy=0.1):
+        """ Returns all possible ACD
+            NB : accuracy only allow to suppress values, could do better ?
+        """
+        
+
+    def E(self, ):
+        """ """
+
+    def find_solution(self, d1, d2, debug=0):
+        """ """
+
 
 
 class TempoTracker():
