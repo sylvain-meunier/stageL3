@@ -123,6 +123,26 @@ $"On a :" Phi_(n+1) - Phi_n &= (Delta t_n) / p_n - eta_Phi F(Phi_n) \
 
 = Annexe B <ann2>
 
+= Annexe C <ann3>
+
+Posons tout d'abord quelques fonctions utiles.\
+On définit : $g : x |-> min(x - floor(x), 1 + floor(x) - x)$\
+On peut vérifier que $g : x |-> cases(x  - floor(x) "si" x  - floor(x) <= 1/2, 1 - (x - floor(x)) "sinon")$ et que $g$ est 1-périodique continue sur $RR$.\
+
+Ainsi, on a : $Epsilon_T (a) = max_(t in T) g(t/a)$, donc en particulier, $Epsilon_T$ est continue sur $R^*_+$.
+
+On remarque de plus, pour $n in NN^*, T subset (RR^*_+)^n, a in R^*_+ : Epsilon_T (a) = a Epsilon_(T / a) (1)$
+
+== Caractérisation des maximums locaux
+
+== Caractérisation des minimums locaux
+
+
+
+Par continuité de $Epsilon_T$, on est assuré de l'existence d'exactement un unique minimum local entre deux maximums locaux, qui est alors global sur cet intervalle.\
+Par la condition nécessaire précédente, il suffit donc, pour déterminer ce minimum local, de déterminer le plus petit élément parmi les points obtenus, contenus dans l'intervalle.\
+On en déduit ainsi un algorithme en $cal(O)(\# T^2 t^* / tau log(\# T t^* / tau))$ permettant de déterminer tous les minimums locaux accordés par le seuil $tau$ fixé, sur l'intervalle $[2 tau, t_* + tau]$
+
 = Glossaire
 #print-glossary(show-all:true,
     (
