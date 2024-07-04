@@ -146,8 +146,8 @@ def find_recursive(l, current_path, rec=False):
             if not "." in f:
                 find_recursive(l, current_path + '/' + f, rec=rec)
 
-def fit_matching(inp):
-    return [(score_note["onset_beat"], real_note["onset_sec"]) for score_note, real_note in inp]
+def fit_matching(inp, unit="beat"):
+    return [(score_note["onset_" + unit], real_note["onset_sec"]) for score_note, real_note in inp]
 
 def get_current_piece(perfo, path):
     """ Return only the name of the current composition """

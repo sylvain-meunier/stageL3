@@ -5,6 +5,7 @@ import scipy.special
 from util import EPSILON
 from py_measure import cpp_measure
 from kappa import kappa_list, kappa_table
+from quantization import find_local_minima
 import random as rand
 
 RAD = np.pi * 2
@@ -673,3 +674,60 @@ def measure(spectre, delta, x=1, i=0):
 def create_pert(avg, count, pert=0.15):
     t = [avg * (1 + np.random.random() * pert) for _ in range(count)]
     return [i*2 if i < 1 else i for i in t]
+
+class QuantiTracker():
+    def __init__(self, tempo_init, init_time=0) -> None:
+        self.paths = []
+        self.i = None
+        self.tempo_init = tempo_init
+        self.tempo = None
+        self.last_time = None
+        self.current_time = init_time
+        self.T_min = 40 # bm / s
+        self.T_max = 240 # bm / s
+    
+    def get_tempo(self):
+        if self.i is None:
+            return self.tempo_init
+        return 1/self.paths[self.i][0] # quarter / m or bm / s
+    
+        return np.max([i[1] for i in self.paths])
+    
+    def tempo_distance(self, t, t2):
+        return abs(np.log(t / t2))
+    
+    def find_nearest(self, mins, const):
+        i = 0
+        best = self.tempo_distance(mins[0], const)
+        for m in range(1, len(mins)):
+            d = self.tempo_distance(mins[m], const)
+            if d < best:
+                best = d
+                i = m
+
+        return i, best
+    
+    def update_and_return_tempo(self, next_time, debug=0):
+        if self.last_time is not None:
+            delta_1 = self.current_time - self.last_time
+            delta_2 = next_time - self.current_time
+
+            if delta_2 > EPSILON and delta_1 > EPSILON:
+                mins = find_local_minima((delta_1, delta_2), 1/self.T_max, 1/self.T_min)
+                if self.i is None:
+                    self.paths = [(m, 0) for m in mins]
+                    self.i = self.find_nearest(mins, 1/self.tempo_init)[0]
+
+                else:
+                    for i in range(len(self.paths)):
+                        if len(mins) <= 0:
+                            return 10
+                        j, d = self.find_nearest(mins, self.paths[i][0])
+                        self.paths[i] = (mins[j], d)
+
+
+        if next_time - self.current_time > EPSILON:
+            self.last_time = self.current_time
+            self.current_time = next_time
+
+        return self.get_tempo()
