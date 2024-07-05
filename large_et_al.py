@@ -686,15 +686,22 @@ class QuantiTracker():
         self.T_min = 40 # bm / s
         self.T_max = 240 # bm / s
     
-    def get_tempo(self):
+    def get_possible_tempi(self, bound=0.05):
+        return [(1/i[0], 1 / max(bound, i[1]) * bound) for i in self.paths] # quarter / m
+    
+    def get_tempo(self, change=0):
         if self.i is None:
             return self.tempo_init
+        #self.i = np.argmin([k[1] / k[0] for k in self.paths])
+        if change:
+            self.i = (self.i + 1) % len(self.paths)
         return 1/self.paths[self.i][0] # quarter / m or bm / s
     
         return np.max([i[1] for i in self.paths])
     
     def tempo_distance(self, t, t2):
         return abs(np.log(t / t2))
+        return abs(1/t - 1/t2)
     
     def find_nearest(self, mins, const):
         i = 0
@@ -708,6 +715,7 @@ class QuantiTracker():
         return i, best
     
     def update_and_return_tempo(self, next_time, debug=0):
+        is_grace = False
         if self.last_time is not None:
             delta_1 = self.current_time - self.last_time
             delta_2 = next_time - self.current_time
@@ -723,10 +731,12 @@ class QuantiTracker():
                         if len(mins) <= 0:
                             return 10
                         j, d = self.find_nearest(mins, self.paths[i][0])
-                        self.paths[i] = (mins[j], d)
+                        self.paths[i] = (mins[j], d + self.paths[i][1])
 
-
-        if next_time - self.current_time > EPSILON:
+                tempo = self.get_tempo(change=False)
+                is_grace = int(delta_2 * tempo) == 0
+        
+        if next_time - self.current_time > EPSILON and not is_grace:
             self.last_time = self.current_time
             self.current_time = next_time
 
