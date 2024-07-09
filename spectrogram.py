@@ -53,7 +53,7 @@ ratio = []
 nb_piece = 0
 already_done = []
 
-for perfo in l[:1]:
+for perfo in l[1:2]:
     if perfo in already_done:
         continue
     try:

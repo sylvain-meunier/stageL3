@@ -5,7 +5,7 @@ import scipy.special
 from util import EPSILON
 from py_measure import cpp_measure
 from kappa import kappa_list, kappa_table
-from quantization import find_local_minima
+from quantization import find_local_minima, error
 import random as rand
 
 RAD = np.pi * 2
@@ -685,6 +685,10 @@ class QuantiTracker():
         self.current_time = init_time
         self.T_min = 40 # bm / s
         self.T_max = 240 # bm / s
+        self.mins = []
+    
+    def get_interval(self):
+        return self.T_min, self.T_max
     
     def get_possible_tempi(self, bound=0.05):
         return [(1/i[0], 1 / max(bound, i[1]) * bound) for i in self.paths] # quarter / m
@@ -719,9 +723,11 @@ class QuantiTracker():
         if self.last_time is not None:
             delta_1 = self.current_time - self.last_time
             delta_2 = next_time - self.current_time
+            T = (delta_1, delta_2)
 
             if delta_2 > EPSILON and delta_1 > EPSILON:
-                mins = find_local_minima((delta_1, delta_2), 1/self.T_max, 1/self.T_min)
+                mins = find_local_minima(T, 1/self.T_max, 1/self.T_min)
+                self.mins = [(1/a, error(a, T)) for a in mins]
                 if self.i is None:
                     self.paths = [(m, 0) for m in mins]
                     self.i = self.find_nearest(mins, 1/self.tempo_init)[0]

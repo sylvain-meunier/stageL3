@@ -12,7 +12,7 @@ def rand(a):
     return b
 
 hands = 0
-init_bpm = 125
+init_bpm = 100
 t = Oscillateur2(tempo_init=init_bpm, eta_s=1, eta_p=0.17, eta_phi=2)
 t2 = Oscillateur2(tempo_init=init_bpm, eta_s=1, eta_p=0.17, eta_phi=2)
 tempo = TimeKeeper(tempo_init=init_bpm, alpha=0.5, beta=0.3)
@@ -67,13 +67,13 @@ def fit(a, maxi=240, mini=20):
 
 path = "../Database/nasap-dataset-main/"
 folder_path = "Prokofiev/Toccata/"
-folder_path = "Beethoven/Piano_Sonatas/18-2/"
 folder_path = "Bach/Italian_concerto/"
 folder_path = "Brahms/Six_Pieces_op_118/2/"
 folder_path = "Liszt/Sonata/"
-folder_path = "Mozart/Piano_sonatas/11-3/"
-folder_path = "Balakirev/Islamey/"
 folder_path = "Schumann/Toccata/"
+folder_path = "Beethoven/Piano_Sonatas/18-2/"
+folder_path = "Balakirev/Islamey/"
+folder_path = "Mozart/Piano_sonatas/11-3/"
 
 l = []
 
@@ -162,8 +162,8 @@ for perfo in l[:1]:
     #plt.plot(results[-2], results[-1], label="Constant forced BPM input")
     #plt.title("Tempo curve for fixed entry with ± 10% perturbation")
 
-plt.title("Tempo curve for a performance of " + folder_path[:-1])
-plt.ylabel("Tempo (bpm)")
-plt.xlabel("Time (second)")
-plt.legend()
-plt.show()
+#plt.title("Tempo curve for a performance of " + folder_path[:-1])
+#plt.ylabel("Tempo (bpm)")
+#plt.xlabel("Time (second)")
+#plt.legend()
+#plt.show()

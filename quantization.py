@@ -17,3 +17,12 @@ def find_local_minima(T, start, end):
             mins.append(np.min(pot_mins))
 
     return mins
+
+def f(a, t) :
+    return t/a - int(t/a)
+
+def g(a, t) :
+    return min(f(a, t), 1 - f(a, t))
+
+def error(a, T):
+    return a * np.max([g(a, t) for t in T])
