@@ -1,21 +1,14 @@
 import os
 import numpy as np
 from util import EPSILON, get_beats_from_txt, get_matching_from_txt, fit_matching
-from random import random
 import matplotlib.pyplot as plt
 from large_et_al import *
-
-def rand(a):
-    b = random() * a
-    if b > a/2:
-        return b  - a
-    return b
 
 init_bpm = 100
 tt = QuantiTracker(init_bpm)
 
 inputs = []
-results = ([], [], [], [], [], [], [], [], [])
+results = [[], [], [], [], [], [], [], [], []]
 
 path = "../Database/nasap-dataset-main/"
 folder_path = "Prokofiev/Toccata/"
@@ -24,8 +17,8 @@ folder_path = "Brahms/Six_Pieces_op_118/2/"
 folder_path = "Liszt/Sonata/"
 folder_path = "Schumann/Toccata/"
 folder_path = "Beethoven/Piano_Sonatas/18-2/"
-folder_path = "Balakirev/Islamey/"
 folder_path = "Mozart/Piano_sonatas/11-3/"
+folder_path = "Balakirev/Islamey/"
 
 l = []
 
@@ -49,6 +42,16 @@ find_recursive(path + folder_path, rec=1)
 #inputs = get_beats_from_txt(l[0] + "_annotations.txt", accept_br=1)
 inputs = [(ind, inputs[ind]) for ind in range(len(inputs))]
 
+import matplotlib.pylab as pylab
+size = 35
+params = {'legend.fontsize': size,
+        'axes.labelsize': size,
+        'axes.titlesize':size,
+        'xtick.labelsize':20,
+        'ytick.labelsize':20}
+pylab.rcParams.update(params)
+
+
 ratio = []
 nb_piece = 0
 already_done = []
@@ -70,14 +73,19 @@ for perfo in l[1:2]:
 
             if inputs[ti+1][1] - time_input > EPSILON:
                 results[5].append(((inputs[ti+1][0] - beat_input) * 60 / (inputs[ti+1][1] - time_input)))
-            else:
-                results[5].append(init_bpm)
+
             tt.update_and_return_tempo(time_input)
-            if ti % 50 == 0:
-                for t, e in tt.get_possible_tempi():
-                    plt.scatter([time_input], [t], alpha=1/120, color="black") # e / 50
-            print(ti, len(tt.get_possible_tempi()))
+            if ti % 5 == 0:
+                for t, e in tt.mins:
+                    plt.scatter([time_input], [t], alpha=min(1, 0.00002/e), color="black", s=5)
+
+            print(ti, len(tt.mins))
 
     #plt.plot(results[0], results[6], '.', markersize=2, label='Error')
-    plt.plot(results[0], results[5], '.', markersize=2, label='Score')
+    plt.yscale('log')
+    #plt.plot(results[0], results[5], '.', markersize=2, label='T∗(t)', color="yellow", alpha=0.5)
+    #plt.title("Tempo curve for a performance of Islamey, Op.18, M. Balakirev with naive algorithm")
+    #plt.xlabel('Time (second)')
+    #plt.ylabel('Tempo (BPM)')
+    #plt.legend()
     plt.show()
