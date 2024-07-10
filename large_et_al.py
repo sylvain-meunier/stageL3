@@ -735,7 +735,7 @@ class QuantiTracker():
                 else:
                     for i in range(len(self.paths)):
                         if len(mins) <= 0:
-                            return 10
+                            return self.get_tempo()
                         j, d = self.find_nearest(mins, self.paths[i][0])
                         self.paths[i] = (mins[j], d + self.paths[i][1])
 
