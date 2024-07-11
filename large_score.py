@@ -4,6 +4,11 @@ from util import EPSILON
 
 RAD = 2 * np.pi
 
+def minabs(a, b):
+    if abs(a) < abs(b):
+        return a
+    return b
+
 class Large():
     def __init__(self, tempo_init=None, phase=0, last_time=0, eta_s = 0.9, eta_phi=np.pi, eta_p=np.pi/4) -> None:
         if tempo_init is None:
@@ -16,19 +21,16 @@ class Large():
         self.last_time = last_time              # Last known event (s)
         self.eta_phi = eta_phi
         self.eta_p = eta_p
+        self.phi = 0
+        self.dt = 1
 
     def get_tempo(self):
         """ Return estimated tempo in bpm """
         return 60 / self.period # bpm
     
-    def normalize_phase(self):
-        """ Force phase to fit in the interval (-0.5, 0.5] mod 1 """
-        self.phase = self.phase - np.floor(self.phase)
-        while self.phase < 0: # Should not happen
-            self.phase += 1
-
-        while self.phase > 0.5: # Should happen at most once
-            self.phase -= 1
+    def normalize_phase(self, phi):
+        """ Force phase to fit in the interval [0, 1[ mod 1 """
+        return phi - int(phi)
 
     def F(self, phi, kappa):
         return 1 / (RAD*np.exp(kappa)) * np.exp(kappa * np.cos(RAD * phi)) * np.sin(RAD * phi)
@@ -64,9 +66,70 @@ class Large():
 
     def update_and_return_tempo(self, current_beat, current_time, debug=0):
         if current_beat > self.phase:
-            dphi = min(current_beat - self.phase, self.phase - (current_beat - 1))
+            dphi = minabs(current_beat - self.phase, self.phase - (current_beat - 1))
         else:
-            dphi = min(self.phase - current_beat, current_beat - (self.phase - 1))
-        dphi = current_beat - self.phase
+            dphi = minabs(self.phase - current_beat, current_beat - (self.phase - 1))
+        self.phi = dphi
+        self.dt = current_time - self.last_time
         self.update_parameters(current_time, dphi, debug=debug)
+        return self.get_tempo()
+
+
+class LargeKeeper(Large):
+    def get_tempo(self):
+        p = super().get_tempo()
+        self.prev = p
+        curr = p / (1 - p * self.eta_phi * self.F(self.phase, self.kappa) / (self.dt))
+        if curr < 20 or curr > 300:
+            return self.prev
+        self.prev = curr
+        return curr
+
+
+class TimeKeeper():
+    def __init__(self, tempo_init=120, a0=0, alpha=0.05, beta=0.05, last_time=0) -> None:
+        self.alpha = alpha                  #
+        self.beta = beta                    #
+        self.tau = 60 / tempo_init          # s (/ beat)
+        self.asynchrony = a0                # s
+        self.last_time = last_time
+        self.c = self.tau
+
+    def normalize_asynchrony(self, a):
+        while a < 0:
+            a += self.tau
+        while a >= self.tau:
+            a -= self.tau
+
+        if a > self.tau / 2:
+            a -= self.tau
+
+        if abs(a) < 0.001:
+            return 0
+        return a
+
+    def update_parameters(self, current_time, asyn, debug=0):
+        """ Given the current time (seconds), update the internal parameters """
+        # According to : https://www.mcgill.ca/spl/files/spl/loehrlargepalmer2011.pdf
+        # Loehr, Large, Palmer (2011)
+        tau = self.tau
+        c = current_time - self.last_time
+        if abs(c) < EPSILON:
+            return
+
+        self.asynchrony = asyn * (1 - self.alpha) + tau - c
+        #self.asynchrony = self.normalize_asynchrony(self.asynchrony)
+        self.tau = tau - self.beta * self.normalize_asynchrony(asyn)
+        self.last_time = current_time
+
+        if debug:
+            print("A:" + str(self.asynchrony)[:5], "Tau:" + str(self.tau)[:5], int(self.get_tempo()), "BPM")
+
+    def get_tempo(self):
+        return 60 / self.tau
+
+    def update_and_return_tempo(self, current_beat, current_time, debug=0):
+        k = int((self.asynchrony - current_beat) / self.tau)
+        asyn = minabs(self.asynchrony - current_beat -k*self.tau, (k+1)*self.tau - (self.asynchrony - current_beat))
+        self.update_parameters(current_time, asyn, debug=debug)
         return self.get_tempo()
