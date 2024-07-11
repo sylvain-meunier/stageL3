@@ -75,7 +75,7 @@ for perfo in l[1:2]:
                 results[5].append(((inputs[ti+1][0] - beat_input) * 60 / (inputs[ti+1][1] - time_input)))
 
             tt.update_and_return_tempo(time_input)
-            if ti % 5 == 0:
+            if ti % 6 == 0:
                 for t, e in tt.mins:
                     plt.scatter([time_input], [t], alpha=min(1, 0.00002/e), color="black", s=5)
 

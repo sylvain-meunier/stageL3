@@ -20,8 +20,8 @@ folder_path = "Brahms/Six_Pieces_op_118/2/"
 folder_path = "Liszt/Sonata/"
 folder_path = "Schumann/Toccata/"
 folder_path = "Beethoven/Piano_Sonatas/18-2/"
-folder_path = "Balakirev/Islamey/"
 folder_path = "Mozart/Piano_sonatas/11-3/"
+folder_path = "Balakirev/Islamey/"
 
 def path_to_name(path_):
     return path_[len(path):].replace('/', '_').replace('.', '')
@@ -30,7 +30,7 @@ folder_save = "./Figures/Spectrogram/"
 
 l = []
 
-radius = 2
+radius = 4
 circle = []
 for i in range(-radius, radius+1):
     for j in range(-radius, radius+1):
@@ -64,7 +64,22 @@ inputs = [(ind, inputs[ind]) for ind in range(len(inputs))]
 def update_amount(tab, x, y, color):
     tab[x, y] = [min(c, 255) for c in color]
 
-for perfo in l:
+def update_error(tab, x, y, color):
+    alpha = tab[x, y][-1]
+    tmp = np.array([int(min(c, 255)) for c in color])
+    if alpha < 1:
+        tab[x, y] = np.array([int(min(c, 255)) for c in color])
+    else:
+        if tmp[0] > tab[x, y][0]:
+            tab[x, y] = tmp
+
+def extend_image(im, x_inds, image_width, image_height):
+    for x in range(1, image_width):
+        if not x in x_inds:
+            for y in range(image_height):
+                im[x, y] = im[x-1, y]
+
+for perfo in l[1:2]:
     matching = get_matching_from_txt(perfo + ".mid")
     inputs = fit_matching(matching, unit="quarter")
 
@@ -73,12 +88,12 @@ for perfo in l:
     image_width = int(maxinput / tatum) + 1
     #image_width = len(inputs)-1
     interval = tt.get_interval()
-    accuracy = 0.25 # quarter per minute
+    accuracy = 1/4 # quarter per minute
     image_height = int(abs(interval[0] - interval[1]) / accuracy) + 1
     img = np.zeros((image_width, image_height, 3), dtype=np.uint8)
-    img2 = np.zeros((image_width, image_height, 4), dtype=np.uint8)
+    img2 = np.zeros((image_width, image_height, 3), dtype=np.uint8)
 
-    x_ind = 0
+    x_inds = []
 
     for ti in range(len(inputs)-1):
             beat_input, time_input = inputs[ti]
@@ -86,28 +101,36 @@ for perfo in l:
                 results[5].append(((inputs[ti+1][0] - beat_input) * 60 / (inputs[ti+1][1] - time_input)))
 
             x_ind = int((beat_input / maxinput) * image_width)
+            x_inds.append(x_ind)
 
             tt.update_and_return_tempo(time_input)
+
             amount = len(tt.get_possible_tempi())
             for t, e in tt.get_possible_tempi():
                 y_ind = int((t - min(interval)) / accuracy)
-                alpha = img[x_ind, y_ind][-1]
-                color = 255 * min(1, alpha + 1/amount) * 5
-                plot_point(img, x_ind, y_ind, [color] * 3, update_amount)
+                if abs(e) < 0.000000001:
+                    err = 1
+                else:
+                    err = min(1, 0.0001/e)
+                color = [255 * err] * 3
+                plot_point(img, x_ind, y_ind, color, update_error)
 
-            for t, e in tt.mins:
-                y_ind = int((t - min(interval)) / accuracy)
-                alpha = img[x_ind, y_ind][-1]
-                err = max(e, min_error) / min_error
-                err = 255 / err
-                color = [255] * 3 + [err * 20]
-                plot_point(img2, x_ind, y_ind, color, update_amount)
+            for y_ind in range(image_height):
+                t = y_ind * accuracy + min(interval)
+                if len(tt.T) == 0:
+                    continue
+                e = error(1/t, tt.T)
 
-            #x_ind += 1
+                err = min(1, 0.00008/e)
+                color = [255 * err] * 3
+                plot_point(img2, x_ind, y_ind, color, update_error)
+
             print(int(100 * ti / len(inputs)), '%')
 
+    extend_image(img, x_inds, image_width, image_height)
     im = Image.fromarray(img).rotate(90, expand=1)
-    print(im.width, im.height)
     im.save(folder_save + path_to_name(perfo) + "_amount.png")
+    
+    extend_image(img2, x_inds, image_width, image_height)
     im2 = Image.fromarray(img2).rotate(90, expand=1)
     im2.save(folder_save + path_to_name(perfo) + "_error.png")
