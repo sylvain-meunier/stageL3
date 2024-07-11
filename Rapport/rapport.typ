@@ -58,7 +58,7 @@ However, note-alignement, that is matching each note of a performance with those
 
 In this report, we will present a few contributions :
 - a justified proposition for a formal definition of tempo based on @raphael_probabilistic_2001, @kosta_mazurkabl:_2018 and @hu_batik-plays-mozart_2023 ; and some immediate consequences
-- a modification of @large_dynamics_1999 and @schulze_keeping_2005
+- a modification of @large_dynamics_1999 and @schulze_keeping_2005 [PB !!!]
 - an extension of @romero-garcia_model_2022, to fit tempo estimation
 - generated data based on @foscarin_asap:_2020 and @peter_automatic_2023
 
@@ -123,33 +123,29 @@ Here, $(Phi_n)$ corresponds to the phase, or rather the phase shift between the 
 $F : Phi, kappa -> exp(kappa cos(2pi Phi)) / exp(kappa) sin(2pi Phi)/(2 pi)$.\
 
 Even though this model shows pretty good results, has been validated through some experiments in #cite(<large_dynamics_1999>, form:"normal"), and is still used in the previously presented version (@large_dynamic_2023), a theorical study of the system behavior remains quite complex, even in simplified theorical cases #cite(<schulze_keeping_2005>, form:"normal"), notably because of the  function $F$ expression.\
-
-In order to simplify the model, @schulze_keeping_2005 present _TimeKeeper_, that can be seen as a simplification of the previous approach, valid in the theorical framwork of a metronome presenting small tempo variations. Actually, the two models are almost equivalent under specific circumstances, as shown by @loehr_temporal_2011.\
 \
 
-@large_curve displays the results of the two previous models, and the canonical, or immediate tempo. One can notice the salient stability of @large_dynamics_1999 model.
+In order to simplify the model, @schulze_keeping_2005 present _TimeKeeper_, that can be seen as a linearization of the previous approach, valid in the theorical framwork of a metronome presenting small tempo variations. In fact, there is a strong analogy between the two models, that are almost equivalent under specific circumstances, as shown by @loehr_temporal_2011.\
+
+@large_curve displays the results of those two models, in regards with the canonical, or immediate tempo. One can notice that @large_dynamics_1999 model is less stable than _TimeKeeper_, although faster to converge.
 
 #figure(
-  image("../Figures/naive_version.png", width: 100%),
+  image("../Figures/large_version.png", width: 100%),
   caption: [
     Tempo curve for a performance of Islamey, Op.18, M. Balakirev according to various models
   ],
 ) <large_curve>
 
-[Potential quick curve analysis]
+@init_curve (below) exposes the visible difference in tempo initialization of the two models, starting both here with the initial tempo of 70 BPM (♩ = 70). _TimeKeeper_ does not manage to converge to any significant tempo. Such a behavior was to be expected, considering the theorical framework for _TimeKeeper_, that is small tempo variation, and correct initialization. However, Large et al model manages to converge to a meaningful result. In fact, in the range 9 to 70 seconds, the estimated tempo according to Large is exactly half of the actual tempo hinted by the blue dots (canonical tempo).
 
-=== LargeKeeper
+#figure(
+  image("../Figures/large_nc_version.png", width: 100%),
+  caption: [
+    Tempo curve for a performance of Piano Sonata No. 11 in A Major (K. 331: III), W.A Mozart according to the same models
+  ],
+) <init_curve>
 
-Un premier objectif a été de fusionner les approches de @large_dynamics_1999 et @schulze_keeping_2005 afin d'essayer d'obtenir des garanties théoriques sur le modèle résultant. On montre en @ann1 que l'on obtient alors le système composé des deux équations suivantes :\
-#eq1
-#nb_eq[$p_(n+1) = p_n 1 / (1 - (p_n eta_Phi F(Phi_n, kappa_n)) / (t_(n+1) - t_n))$] <largekeeper>\
-On notera que ce modèle a l'avantage de contenir un paramètre de moins que celui de Large.
-On remarque également que, pour $Delta_t = t_(n+1) - t_n >> p_n eta_Phi F(Phi_n, kappa_n)$ dans @largekeeper, on obtient :
-$p_(n+1) = p_n (1 + p_n / Delta_t eta_Phi F(Phi_n, kappa_n))$. Quitte à poser $eta_p = p_n / Delta_t eta_Phi$ on retrouve @large2.\
-Les modèles sont donc équivalents sous ces conditions. En pratique (voir @ann2), on obtient des résultats très similaires à @large_dynamics_1999, avec un paramètre constant en moins. Bien que ce modèle n'offre guère plus de garanties _a priori_ que @large_dynamics_1999, il est toutefois nettement plus aisé d'en faire l'analyse par rapport à un tempo canonique. On peut ainsi montrer  que : #nb_eq[$alpha_(n+1) &= (alpha_n - eta_Phi F(Phi_n) / (Delta b_n)) T_n^* / (T_(n+1)^*) \
-&= alpha_n T_n^* / T_(n+1)^* - eta_Phi F(Phi_n) / ( Delta t_n T_(n+1)^*)$]
-où $forall n in NN, alpha_n = T_n / T_n^*$.\
-Par ailleurs, on montre en @ann2 que ce modèle possède les mêmes garanties théoriques que @large_dynamics_1999 dans une situation idéalisée simple.
+=== LargeKeeper : revoir les équations d'abord, le cas échéant l'ajoute à la liste des contribs (sinon, le supprimer)
   
 
 = Scoreless approaches
