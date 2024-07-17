@@ -340,11 +340,21 @@ Since $h_(t') : x |->  g(t'/x) - g(t^* / x)$ is continuous in a neighbourhood of
 Let $epsilon_(t^*) = min_(t' in T) epsilon_(t')$ and finally $epsilon_1 = min_(t^* in T^*) epsilon_(t^*)$.\
 \
 Let $(t_1, t_2) in (T^*)^2$.\
-In the following, $x$ is an element of a right neighbourhood of a, denotated as $x in N(a)^+$.\
+In the following, $N(a)^+$ is a right neighbourhood of $a$ such that $a in.not N(a)^+$.\
 
-Si l'on a pas : $g(t_1 / x) >= g(t_2 / x) $ without loss of generality, , let $"tmp" : x |-> g(t_1 / x) - g(t_2 / x)$ be a continous function on $N(a)^+$. There exists $x^* in N(a)^+$, $x > a$, so that $"tmp"(x^*) = 0 <=> g(t_1/x^*) = g(t_2/x^*)$. WLOG $g(t_1/x) >= g(t_2 / x) forall x in [a, x^*]$.\
+Let $"tmp" : x |-> g(t_1 / x) - g(t_2 / x)$ be a continous function on $N(a)^+$ and $A$ be the set of all $x^* in N(a)^+ $ so that $"tmp"(x^*) = 0 <=> g(t_1/x^*) = g(t_2/x^*)$.
+
+  If $A$ is an infinite set, we have for all $x^* in A$, $ g(t_1/x^*) = g(t_2/x^*)$ by definition. Considering the expression of $g$, we then find : $t_1/x^* = plus.minus t_2/x^* mod 1$. Moreover, since $g$ only reach $g(t_1/a) = 1/2$ once per period, we have $t_1/a = t_2/a mod 1$, ie $|t_1/a - t_2/a| = k_a in NN$.
+
+Then,  $t_1/x^* = plus.minus t_2/x^* mod 1$ ie $|t_1/x^* minus.plus t_2/x^*| = k_* in NN$, and therefore $|t_1 minus.plus t_2| = a k_a = x^* k_*$, and $x^* > a$ implies $k_a > k_* >=0$. However, $x^* = abs(t_1 minus.plus t_2) / k_*$, hence $A$ is finite, which is absurd.
+
+Finally, $A$ is #underline([a finite set]).\
+Let then $x_(t_1, t_2) = cases(min A "if" A != emptyset, x in N(a)^+ without {a} "otherwise") $ WLOG $g(t_1/x) >= g(t_2/x) forall x in [a, x_(t_1, t_2)]$\
+Let $a_2 = display(min_((t_1, t_2) in T^*^2)) underbrace(x_(t_1, t_2), > a)$ and $a_1 in ]a, a_2[$,\
+let $t^* = display(argmax_(t' in T^*)) g(t'/a_1)$
+We finally have $forall x in ]a, a_2[, g(t^* / x) >= g(t' / x), forall t' in T^*$.\
 \
-Quitte à restreindre $N(a)^+$, $f : v |-> g(t_1 / v)$ is monotonic on $N(a)^+$ and $x^*$ is unique within the neighbourhood. Therefore, $g(t_1/a) = a / 2 >= g(t_1/x^*)$
+Let then $tilde(a) = min(a + epsilon_1, a_2)$
 
 == Caractérisation des minimums locaux
 
