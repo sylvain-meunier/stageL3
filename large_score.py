@@ -24,9 +24,12 @@ class Large():
         self.phi = 0
         self.dt = 1
 
+    def period_to_tempo(self, period):
+        return 60 / (period) # bpm
+
     def get_tempo(self):
         """ Return estimated tempo in bpm """
-        return 60 / self.period # bpm
+        return self.period_to_tempo(self.period) # bpm
     
     def normalize_phase(self, phi):
         """ Force phase to fit in the interval [0, 1[ mod 1 """
@@ -65,10 +68,8 @@ class Large():
             print("Phi=" + str(self.phase)[:5], "p="+str(self.period)[:5], "Kappa=" + str(kappa)[:5], self.get_tempo(), "BPM")
 
     def update_and_return_tempo(self, current_beat, current_time, debug=0):
-        if current_beat > self.phase:
-            dphi = minabs(current_beat - self.phase, self.phase - (current_beat - 1))
-        else:
-            dphi = minabs(self.phase - current_beat, current_beat - (self.phase - 1))
+        k = int(self.phase - current_beat)
+        dphi = -minabs(k + current_beat - self.phase, k + 1 + current_beat - self.phase)
         self.phi = dphi
         self.dt = current_time - self.last_time
         self.update_parameters(current_time, dphi, debug=debug)
@@ -77,11 +78,12 @@ class Large():
 
 class LargeKeeper(Large):
     def get_tempo(self):
-        p = super().get_tempo()
-        self.prev = p
+        p = self.period
+        self.prev = self.period_to_tempo(p)
+        #p = self.period_to_tempo(p)
         curr = p / (1 - p * self.eta_phi * self.F(self.phase, self.kappa) / (self.dt))
-        if curr < 20 or curr > 300:
-            return self.prev
+        curr = self.period_to_tempo(curr)
+        
         self.prev = curr
         return curr
 
@@ -130,6 +132,6 @@ class TimeKeeper():
 
     def update_and_return_tempo(self, current_beat, current_time, debug=0):
         k = int((self.asynchrony - current_beat) / self.tau)
-        asyn = minabs(self.asynchrony - current_beat -k*self.tau, (k+1)*self.tau - (self.asynchrony - current_beat))
+        asyn = -minabs(-self.asynchrony + current_beat + k*self.tau, (k+1)*self.tau - (self.asynchrony - current_beat))
         self.update_parameters(current_time, asyn, debug=debug)
         return self.get_tempo()
