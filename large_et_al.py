@@ -684,7 +684,8 @@ class QuantiTracker():
         self.last_time = None
         self.current_time = init_time
         self.T_min = 10 # bm / s
-        self.T_max = 240 # bm / s
+        self.T_max = 240*2 + 5 # bm / s
+        self.quarter_in_bm = 60 # a quarter is 60 bm here
         self.mins = []
         self.T = []
     
@@ -696,11 +697,11 @@ class QuantiTracker():
     
     def get_tempo(self, change=0):
         if self.i is None:
-            return self.tempo_init
+            return self.tempo_init / self.quarter_in_bm * 60
         #self.i = np.argmin([k[1] / k[0] for k in self.paths])
         if change:
             self.i = (self.i + 1) % len(self.paths)
-        return 1/self.paths[self.i][0] # quarter / m or bm / s
+        return (1/self.paths[self.i][0]) / self.quarter_in_bm * 60 # quarter / m
     
         return np.max([i[1] for i in self.paths])
     
@@ -710,15 +711,59 @@ class QuantiTracker():
     
     def find_nearest(self, mins, const):
         i = 0
-        best = self.tempo_distance(mins[0], const)
+        best = d = self.tempo_distance(mins[0], const)
         for m in range(1, len(mins)):
-            d = self.tempo_distance(mins[m], const)
+            d2 = self.tempo_distance(mins[m], const)
+            if d2 > d:
+                return i, best
+            d = d2
             if d < best:
                 best = d
                 i = m
 
         return i, best
-    
+
+    def filter(self, mins, T, conds):
+        loc_error = lambda a : error(a, T)
+        if 3 in conds:
+            loc_error = lambda a : error(a, T)/a
+
+        if len(mins) < 3 and len(conds) > 0:
+            if len(mins) <= 1 or loc_error(mins[0]) == loc_error(mins[-1]):
+                return mins
+            a = loc_error(mins[0])
+            b = loc_error[mins[1]]
+            if a > b:
+                return [mins[1]]
+            return [mins[0]]
+
+        if 1 in conds:
+            filtered = []
+            for i in range(1, len(mins) - 1):
+                if loc_error(mins[i-1]) >= loc_error(mins[i]) and loc_error(mins[i+1]) >= loc_error(mins[i]):
+                    filtered.append(mins[i])
+            mins = filtered
+
+        if 2 in conds:
+            if len(mins) < 3:
+                if len(mins) <= 1 or loc_error(mins[0]) == loc_error(mins[-1]):
+                    return mins
+                a = loc_error(mins[0])
+                b = loc_error[mins[1]]
+                if a > b:
+                    return [mins[1]]
+                return [mins[0]]
+
+            filtered = []
+            min_err = loc_error(mins[0])
+            for i in range(1, len(mins) - 1):
+                if loc_error(mins[i]) <= min_err:
+                    min_err = loc_error(mins[i])
+                    filtered.append(mins[i])
+            mins = filtered
+
+        return mins
+
     def update_and_return_tempo(self, next_time, debug=0):
         is_grace = False
         if self.last_time is not None:
@@ -729,16 +774,24 @@ class QuantiTracker():
 
             if delta_2 > EPSILON and delta_1 > EPSILON:
                 mins = find_local_minima(T, 1/self.T_max, 1/self.T_min)
+                mins = self.filter(mins, T, conds=[])
+
+                if debug and len(mins) == 0:
+                    print(len(mins), T, (1/self.T_max, 1/self.T_min))
+
+                if len(mins) <= 0:
+                    return self.get_tempo()
                 self.mins = [(1/a, error(a, T)) for a in mins]
-                if self.i is None:
+
+                if self.i is None or len(self.paths) == 0:
                     self.paths = [(m, 0) for m in mins]
                     self.i = self.find_nearest(mins, 1/self.tempo_init)[0]
-
                 else:
+                    j = 0
                     for i in range(len(self.paths)):
-                        if len(mins) <= 0:
-                            return self.get_tempo()
-                        j, d = self.find_nearest(mins, self.paths[i][0])
+                        if i == 0 or (self.paths[i][0] != self.paths[i-1][0]):
+                            dj, d = self.find_nearest(mins[j:], self.paths[i][0])
+                            j += dj
                         self.paths[i] = (mins[j], d + self.paths[i][1])
 
                 tempo = self.get_tempo(change=False)
