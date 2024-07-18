@@ -296,44 +296,42 @@ Posons tout d'abord quelques fonctions utiles.\
 On définit : $g : x |-> min(x - floor(x), 1 + floor(x) - x)$\
 On peut vérifier que $g : x |-> cases(x  - floor(x) "si" x  - floor(x) <= 1/2, 1 - (x - floor(x)) "sinon")$ et que $g$ est 1-périodique continue sur $RR$.\
 
-Ainsi, on a : $epsilon_T (a) = max_(t in T) g(t/a)$, donc en particulier, $epsilon_T$ est continue sur $R^*_+$.
+Ainsi, on a : $epsilon_T (a) = display(max_(t in T) (min_(m in ZZ) abs(t - m a))) = display(max_(t in T)) min(t - floor(t/a)a, (floor(t/a) + 1)a - t) = a display(max_(t in T) underbrace(min(t/a - floor(t/a), floor(t/a) + 1 - t/a), g(t/a))) = a display(max_(t in T) g(t/a))$, donc en particulier, $epsilon_T$ est continue sur $R^*_+$.
 
 On remarque de plus, pour $n in NN^*, T subset (RR^*_+)^n, a in R^*_+ : epsilon_T (a) = a epsilon_(T \/ a) (1)$. Hence the intuitive following result : the smaller the tatum, the smaller the bound of the error.
 
 == Caractérisation des maximums locaux
+
 === First implication
 \
 Let $a$ be a local maxima of $epsilon_T$, $a > 0$.\
 By definition, there is a $a > epsilon > 0$ so that :\
 $forall delta in ]-epsilon, epsilon [, epsilon_T (a) >= epsilon_T (a + delta)$.\
-Let $t = display(argmax_(t' in T)) g(t' / a)$, hence $epsilon_T (a) = a g(t/a)$.\
+Let $t in display(argmax_(t' in T)) g(t' / a)$, hence $epsilon_T (a) = a g(t/a)$.\
 For all $delta in ]-epsilon, epsilon [, epsilon_T (a) = a g(t/a) >= epsilon_T (a + delta)$,\ and $epsilon_T (a + delta) = (a + delta) max_(t' in T) g(t'/(a + delta)) >= (a + delta) g(t / (a + delta))$.
 For $delta >= 0, a + delta >= a$, so $a g(t/a) >= (a+delta) g(t/(a+delta)) >= a g(t/(a+delta))$\
-Hence, $underline(g(t/a) >= g(t/(a+delta)))$ since $a > 0$, for all $delta in [0, epsilon[$.\
-Therefore, $g$ increases monotonically in the range $] t/(a+delta), t/a [$, since $g$ has a unique local maxima (modulo 1), considering the previous range as a neighbourhood of $t/a$.\
-Hence, $g = x -> x - floor(x) $ within the considered range, and $g(t/a) = t/a - floor(t/a)$.\
+Hence, $g(t/a) >= g(t/(a+delta))$ since $a > 0$, for all $delta in [0, epsilon[$.\
+Therefore, $g$ #underline([increases monotonically]) in the range $] t/(a+delta), t/a [$, since $g$ has a unique local maxima (modulo 1), considering the previous range as a neighbourhood of $t/a$.\
+Hence, $g = x |-> x - floor(x) $ within the considered range, and $g(t/a) = t/a - floor(t/a), epsilon_T (a) = t - a floor(t/a)$.\
 \
-If $g(t/a) < 1/2$, there is $alpha in ]t/a, t/(a-delta)[$ so that $g(t/a) < g(alpha) < 1/2$, because $g$ is continuous on $RR$, with : $g(alpha) = alpha - floor(alpha)$.\
-Moreover, we can suppose $floor(alpha) = floor(t/a)$ since $g$ is 1-periodic.\
-Then, $g(t/a) < g(alpha) <=> t/a - floor(t/a) < alpha - floor(alpha) = alpha - floor(t/a) < 1/2$.\
-Therefore, $t/a < alpha < 1/2 + floor(t/a)$.\ Let $x = alpha - t/a > 0$, ie $alpha = t/(a - x)$.\
-Since $g(t/a) < g(t/(a - x)), max_(t' in T) g(t'/(a-x)) >= g(t/(a-x)) > g(t/a)$.\
-Hence, $epsilon_T (a) < a max_(t' in T) g(t'/(a-x)) = (a - x) / a epsilon_T (a-x)$ and $epsilon_T (a) >= epsilon_T (a - x)$ for all $x in ]0, underbrace(min(epsilon, 1/2 + floor(t/a) - t/a), beta) [$.\
-$beta > 0$, since $epsilon > 0$ and $t/a - floor(t/a) = g(t/a) < 1/2$.\
-Let x in $]0, beta[, - epsilon_T (a) > - epsilon_T (a - x) (a-x) / a$ and $ epsilon_T (a) >= epsilon_T (a - x))$\
-Hence : $0 > epsilon_T (a-x) (1 - (a - x) / a) = underbrace(epsilon_T (a -x), > 0) underbrace((1 - 1 + x/a), > 0)$\
-Finally, $0 > 0$.\
-Therefore, $g(t/a) >= 1/2 = max_(RR)g$, so $g(t/a) = 1/2$.\
-Since $g$ is 1-periodic, $t/a = 1/2 mod 1$, ie $t/a = 1/2 + k, k in ZZ$,\
-or $underline(a = t/(k + 1/2)\, k in NN)$, since $a > 0$.\
-\
+The function $epsilon_T$ is the maximum of a finite set of continuous functions, with a countable set of $A$ of intersection, ie $A = {x in RR^*_+ : exists (t_1, t_2) in T^2 : t_1 != t_2 and x g(t_1/x) = x g(t_2/x)}$.
+Indeed,\
+$x in A &<=> exists (t_1, t_2) in T^2 : t_1 != t_2 and g(t_1/x) = g(t_2/x)\
+&<=> exists (t_1, t_2) in T^2 : t_1 != t_2 and t_1/x = plus.minus t_2 / x mod 1\
+&<=> exists (t_1, t_2) in T^2 : t_1 != t_2 and x = (t_1 minus.plus t_2) / n, n in ZZ^*$\
+Hence $A subset {(t_1 minus.plus t_2) / n, (t_1, t_2) in T^2, n in ZZ^*}$, because $T subset (R^*_+)^(|T|)$.
+Therefore, there is a countable set of closed convex intervalls, which union is $R^*_+$ so that on each of these intervalls, $epsilon_T$ is equal to $f_t : a |-> a g(t/a)$ for a $t in T$. Let then $t$ be so that for all $x in ]a-delta', a[, epsilon_T (x) = f_t(x)$, where $]a-delta', a[$ is included in one the previous intervalls. Since $f_t$ and $epsilon_T$ are both continuous on $[a-delta', a], f_t (a) = epsilon_T (a)$ and therefore, $t in display(argmax_(t' in T)) g(t' / a)$. The previous paragraph showed that $g$ is increasing on a left neighbourhood of $t/a$. Therefore, on a right neighbourhood of $t/a$, $g$ is either increasing or decreasing by its definition.
+
+- if $g$ is increasing on this neighbourhood, called $N(t/a)^+$ in the following, the previous expression of $g$ remains valid, ie $forall x in N(t/a)^+, g(x) = x - floor(x)$. Moreover, $x |-> floor(x)$ is right-continuous, hence by restricting $N(t/a)^+$, we can assure for all $x in N(t/a)^+,floor(x) = floor(t/a)$. Let then $y = a - t/x$ so that $x = t/(a - y)$, we then have $epsilon_T (a - y) = t - (a - y) floor(t/a) <= epsilon_T (a) = t - a floor(t/a)$ because $a$ is a local maxima of $epsilon_T$ and $a - y$ is within a (left) neighbourhood of $a$, even if it means restricting $delta'$ or $N(t/a)^+$. Hence, $t - floor(t/a) a >= t - (a-y)floor(t/a)$ ie $a floor(t/a) <= (a - y) floor(t/a) <=> 0 <= -y floor(t/a)$ ie $floor(t/a) = 0$ ie $floor(t/a) = 0$, since $y, t "and" a$ are all positive values. Then, $a > t$ and in this case, the local maxima is not strict. Such a maxima is rather ininteresting in our study, since it corresponds to an intervall where $epsilon_T$ is constant (at least a left neighbourhood of $a$). Indeed, $epsilon_T (a - y) = t = epsilon_T (a)$ for $floor(t/a) = 0$. This constant intervall is then either going on infinitely on the right of $a$, or else $epsilon_T$ will reach a value greater than $epsilon_T (a) = t$, since $epsilon_T$ can then be rewritten as $x |-> max(display(max_(t' in T without {t}) x g(t'/x) ), epsilon_T (a))$ on $[a, +infinity[$, hence the interesting point, if any, will be a local minimal, that we will consider later. GIVE THE EXPRESSION TO FIND IT OR MODIFY THE ALGORITHM TO FIND IT AS WELL.\ On the other hand, on the left of $a$ : BETTER LOCAL MAXIMA TO BE FOUND.
+
+- else, $g$ is decreasing on $N(t/a)^+$, $t/a$ is by definition a local maxima of $g$. However, $g$ only has a unique local maxima modulo 1, that is $1/2$. Hence, $t/a = 1/2 mod 1$, ie $t/a = 1/2 + k, k in ZZ$, or $underline(a = t/(k + 1/2)\, k in NN)$, since $a > 0$.
 
 === Second implication
 \
 Let $(t, k) in T times NN, a = t/(k + 1/2)$.\
 By definition : $g(t/a) = g(1/2 + k) = g(1/2) = 1/2 = max_RR g$.\
 Therefore, $epsilon_T (a) = a max_(t' in T) g(t' / a) = a g(t/a) = a / 2$.\
-For all $x in ]0, a[, epsilon_T (x) = x max_(t' in T) g(t'/x) <= x/2 < a/2 = epsilon_T (a)$, ie $epsilon_T (a) > epsilon_T (x)$.\
+For all $x in ]0, a[, epsilon_T (x) = x max_(t' in T) g(t'/x) <= x/2 < a/2 = epsilon_T (a)$, ie $underline(epsilon_T (a) > epsilon_T (x))$.\
 Let $T^* = {t' in T : g(t'/a) = 1/2}$. Since $t in T^*$, $|T^*| > 1$.\
 Let $t^* in T^*$. For all $t' in T without T^*, g(t'/a) < g(t^* / a)$.\
 Since $h_(t') : x |->  g(t'/x) - g(t^* / x)$ is continuous in a neighbourhood of $a > 0$, we have the existence of $epsilon_(t') > 0$ so that $h_(t')$ is strictly positive within $[a, a + epsilon_(t') [$.\
@@ -344,19 +342,39 @@ In the following, $N(a)^+$ is a right neighbourhood of $a$ such that $a in.not N
 
 Let $"tmp" : x |-> g(t_1 / x) - g(t_2 / x)$ be a continous function on $N(a)^+$ and $A$ be the set of all $x^* in N(a)^+ $ so that $"tmp"(x^*) = 0 <=> g(t_1/x^*) = g(t_2/x^*)$.
 
-  If $A$ is an infinite set, we have for all $x^* in A$, $ g(t_1/x^*) = g(t_2/x^*)$ by definition. Considering the expression of $g$, we then find : $t_1/x^* = plus.minus t_2/x^* mod 1$. Moreover, since $g$ only reach $g(t_1/a) = 1/2$ once per period, we have $t_1/a = t_2/a mod 1$, ie $|t_1/a - t_2/a| = k_a in NN$.
+  We have for all $x^* in A$, $ g(t_1/x^*) = g(t_2/x^*)$ by definition. Considering the expression of $g$, we then find : $t_1/x^* = plus.minus t_2/x^* mod 1$. Moreover, since $g$ only reach $g(t_1/a) = 1/2$ once per period, we have $t_1/a = t_2/a mod 1$, ie $|t_1/a - t_2/a| = k_a in NN$.
 
-Then,  $t_1/x^* = plus.minus t_2/x^* mod 1$ ie $|t_1/x^* minus.plus t_2/x^*| = k_* in NN$, and therefore $|t_1 minus.plus t_2| = a k_a = x^* k_*$, and $x^* > a$ implies $k_a > k_* >=0$. However, $x^* = abs(t_1 minus.plus t_2) / k_*$, hence $A$ is finite, which is absurd.
-
-Finally, $A$ is #underline([a finite set]).\
+Then,  $t_1/x^* = plus.minus t_2/x^* mod 1$ ie $|t_1/x^* minus.plus t_2/x^*| = k_* in NN$, and therefore $|t_1 minus.plus t_2| = a k_a = x^* k_*$, and $x^* > a$ implies $k_a > k_* >=0$. However, $x^* = abs(t_1 minus.plus t_2) / k_*$, hence $A$ is finite if $A != emptyset$, and $emptyset$ is a finite set. Finally, $A$ is #underline([a finite set]), ie $|A| in NN$.\
 Let then $x_(t_1, t_2) = cases(min A "if" A != emptyset, x in N(a)^+ without {a} "otherwise") $ WLOG $g(t_1/x) >= g(t_2/x) forall x in [a, x_(t_1, t_2)]$\
 Let $a_2 = display(min_((t_1, t_2) in T^*^2)) underbrace(x_(t_1, t_2), > a)$ and $a_1 in ]a, a_2[$,\
 let $t^* = display(argmax_(t' in T^*)) g(t'/a_1)$
 We finally have $forall x in ]a, a_2[, g(t^* / x) >= g(t' / x), forall t' in T^*$.\
 \
-Let then $tilde(a) = min(a + epsilon_1, a_2)$
+Let then $tilde(a) = min(a + epsilon_1, a_2)$ so that for all $x in ]a, tilde(a)[, t' in T, g(t^* / x) >= g(t'/x)$, hence $epsilon_T (x) = x g(t^* / x)$.\
+Let $f : x |-> g(t^* / x), f(a) = g(t^* / a) = 1/2$ because $t^* in T^*$ hence $f$ is increasing on a right neighbourhood of a, $N(a)^+$, since $1/2$ is a global maxima of $g$, therefore $g$ is increasing on $N(t^* / a)^-$ a left neighbourhood of $t^* / a$, ie $f$ is increasing on $N(a)^+$. Therefore, we know that $g(t^* / x) = t^* / x - floor(t^* / x)$, since the only other possible expression for $g$ would imply a decreasing function on $N(t^* / a)^-$.\
+
+Hence, $epsilon_T (x) = x g(t^* / x) = x (t^* / x - floor(t^* / x)) = t^* - x floor(t^* / x)$ and $epsilon_T (a) = t^* - a floor(t^* / a)$ since $epsilon_T$ is continuous on $RR^*_+$.\
+By definition : $floor(t^* / a) <= t^* / a < floor(t^* / a) + 1$.\
+However, $f(a) = 1/2 = t^* / a - floor(t^* / a)$, therefore $floor(t^* / a) < t^* / a$.\
+Then, there is $alpha in RR^*_+$ so that $floor(t^* / a) < alpha < t^* / a$, let $y = t^* / alpha$, ie $alpha = t^* / y$, with $y > a$.\
+Let $a' = min(y, tilde(a))$ and $k = floor(t^* / a)$. For all $x in ]a, a'[$,
+- $x <= y = t^* / alpha$ hence $floor(t^* / a) <= alpha <= t^* / x$
+- $x >= a$ hence $t^* / x <= t^* / a < floor(t^* / a) + 1$
+
+In the end, $floor(t^* / x) = floor(t^* / a) = k$ by definition.
+\
+Then, $epsilon_T (x) = t^* -x k$ and $epsilon_T (a) = t^* -x a$, with $a < x$.\
+Finally, $underline(epsilon_T (a) > epsilon_T (x))$.
+\
+To conclude, for all $x in ]0, a'[$,
+- if $x <= a$, $epsilon_T (a) >= epsilon_T (x)$
+- if $x >= a, x in [a, a'[$ and $epsilon_T (a) >= epsilon_T (x)$
+
+Hence $a$ is a local maxima of $epsilon_T$, and the set of all local maxima of $epsilon_T$ is $M_T = {t / (k + 1/2), t in T, k in NN}$ $qed$
 
 == Caractérisation des minimums locaux
+
+Let $a$ be a local minima of $epsilon_T$, ie 
 
 Par continuité de $epsilon_T$, on est assuré de l'existence d'exactement un unique minimum local entre deux maximums locaux, qui est alors global sur cet intervalle.\
 Par la condition nécessaire précédente, il suffit donc, pour déterminer ce minimum local, de déterminer le plus petit élément parmi les points obtenus, contenus dans l'intervalle.\
