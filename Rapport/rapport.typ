@@ -73,16 +73,17 @@ Since tempo needs a symbolic representation to be meaningful, one can consider t
 However, note-alignement, that is matching each note of a performance with those indicated by a given score is a very useful preprocessing technique, especially for direct tempo estimation and further analysis, such as #cite(<kosta_mazurkabl:_2018>, form:"normal") #cite(<hentschel_annotated_2021>, form:"normal") #cite(<hu_batik-plays-mozart_2023>, form:"normal"). Two main methods are to be found in litterature : a dynamic programming algorithm, equivalent to finding a shortest path (@muller_memory-restricted_nodate), that can works on raw audio (.wav files) ; and a Hidden Markov Model (@nakamura_performance_2017) that needs more formatted data, such as MIDI files.
 
 In this report, we will present the following contributions :
-- a justified proposition for a formal definition of tempo based on @raphael_probabilistic_2001, @kosta_mazurkabl:_2018 and @hu_batik-plays-mozart_2023 ; and some immediate consequences
-- a revision of @large_dynamics_1999 and @schulze_keeping_2005 to fit a score-based approach
-- an extension of @romero-garcia_model_2022, to fit tempo estimation
+- a justified proposition for a formal definition of tempo based on @raphael_probabilistic_2001, @kosta_mazurkabl:_2018 and @hu_batik-plays-mozart_2023 ; and some immediate consequences (#link(<formal_consider>)[III.A], #link(<naive_use>)[III.B])
+- a revision of @large_dynamics_1999 and @schulze_keeping_2005 to fit a score-based approach (#link(<largmodif>)[III.C])
+- a theorical framework for scoreless tempo estimation (#link(<estimator_intro>)[IV.B])
+- an extension of @romero-garcia_model_2022, to fit tempo estimation, and associated theorical results and proofs (#link(<quanti>)[IV.D] and @gonzalo_spectre)
 - generated data based on @foscarin_asap:_2020 and @peter_automatic_2023
 
 
 
 = Score-based approaches
 
-== Formal considerations
+== Formal considerations <formal_consider>
 
 Since we chose to focus on MIDI files, we will represent a performance as a strictly increasing sequence of events $(t_n)_(n in NN)$, each element of whose indicates the onset of the corresponding performance event. Such a definition is very close to an actual MIDI representation.\
 
@@ -108,7 +109,7 @@ Even though there is a general consensus in the field as for the interest and in
 
 $T^*$ has the advantage to coincide with the tempo actually indicated on traditional sheet music (and therefore on .music_xml format), hence allowing a simpler and more direct interpretation of results.
 
-== Naive use of formalism
+== Naive use of formalism <naive_use>
 
 As said in introduction, the more formatted data, the less accessible it is ; and the field contains only a few datasets containing both sheet music and corresponding audio, more or less anotated with various labels #cite(<kosta_mazurkabl:_2018>, form:"normal")
 #cite(<hentschel_annotated_2021>, form:"normal")
@@ -147,7 +148,7 @@ In order to simplify the previous model, @schulze_keeping_2005 present _TimeKeep
 None of those models have an inherent comprehension of musical score information, since the both rely on a rather stable metronome. In the version displayed hereafter, they were modified to consider score information, in the goal to create a more stable and precise value of tempo than the naive approach previously presented. Those modifications are detailled in the following paragraph (OR IN APPENDIX ?), and were made in order to keep consistency with the original models in their initial theorical framework of validity.
 Let $display(min_"abs") : a, b |-> cases(a "if" |a| < |b|, b "otherwise")$\
 
-We first modify the @large_dynamics_1999 equations accordingly :
+We first modify the @large_dynamics_1999 equations accordingly : <largmodif>
 #nb_eq($Phi_(n+1) = Phi_n + (t_(n+1) - t_n) / p_n - eta_Phi F(Psi_n, kappa_n)$)
 #nb_eq($p_(n+1) = p_n (1 + eta_p F(Psi_n, kappa_n))$)
 $Psi_n = -display(min_"abs") (k + b_n - Phi_n, k + 1 + b_n - Phi_n) \ k = floor(Phi_n - b_n)$.
@@ -192,7 +193,7 @@ We will present here two models focusing on tackling mainly the first two issues
 
 We considered here two quantization methods extracted from litterature : @murphy_quantization_2011 and @romero-garcia_model_2022. Both of these papers present a theory of approximate division, that is a way to find a rationnal number, interpreted as the ratio of two symbolic events expressed in arbitrary unit (for instance in tatum) from the real events durations in seconds. Such a link is equivalent to defining a tempo with the formalism presented in III. Although #cite(<murphy_quantization_2011>, form: "normal") provides an algorithm to find candidate rationnals, they do not include a way to compare those candidates, thus leaving no choice but an exhaustive approach (top-down in the paper). With another formalism, #cite(<romero-garcia_model_2022>) define a graph, restrained only to consistent values of tatum. We choose to adapt the latter, although their presentation is clearly user-oriented rather than automatic, since the introduced graph allows to mathematically (and therefore automatically) define a "good" and a "best" choice among all possible found tatum values.
 
-== Introduction of an estimator based approach
+== Introduction of an estimator based approach <estimator_intro>
 
 Given a sequence $(u_n)_(n in NN)$, we now introduce the notation $(Delta u_n)_(n in NN) := (u_(n+1) - u_n)_(n in NN)$ for the next sections.\
 
@@ -216,11 +217,22 @@ In the implementation presented here, the estimator role is more to quantify the
 
 Such a research allows for a musically explainable result : the current estimation is the nearest most probable tempo, and both halving and doubling the previous tempo is considered as improbable, and as further going from the initial tempo. @ann2 gives further explanation about @estimatorf.
 
-== Study of the model
+== Study of the model <study_of_esti>
 
-Mesure, spectres, résultats sur Asap selon les périodes, les compositeurs, etc..., éventuellement en annexe ?
+Since this approach fundamentally search to estimate tempo variation rather than actual values, it is not easy to visualize the relevance of the result by naive means. We choose here to define $(alpha_n := T_n / T_n^*)_(n in [|1, N|])$ and $(tilde(alpha_n) := exp(ln(T_n / T_n^*) - floor(log_2 (T_n / T_n^*)) ln(2)))_(n in [|1, N|])$. $(tilde(alpha_n))_(n in [|1, N|])$ is then called the _normalized_ sequence of ratio, where each value is uniquely determined within the range $ [1, 2[$. Such a choice allows for merging together the tempo octaves, as explained in @ann1. In this representation, we actually have $tilde(2) = tilde(1)$, and adding $tilde(1)$ is equivalent to multiply the initial value by $2$. We will now define a _spectrum_ $S = (tilde(alpha_n))_(n in [|1, N|])$. We then call $|S|$ the value $N in NN$ and $cal(C)$ the range $[1, 2[$ seen as a circle according to the following application : $c : [1, 2[ &-> cal(C)(0, 1)\ x &|-> (cos(2pi x), sin(2pi x))$, so that $c(1) = c(2)$
 
-== Quantified approach
+We then define the _measure_ of a spectrum $S$, that embodies a standard deviation on $cal(C)$, so that : #nb_eq[$m(S, Delta) = max_(tilde(d) in cal(C)) ( |{n in [|1, |S| |] : d(tilde(alpha_n), tilde(d)) <= Delta}|) / (|S|)$]
+Where $Delta in [0, 1/2]$ embodies the measure accuracy, and $d$ is still a logarithmic distance, slightly modified on $cal(C)$ to be consistent with $d(tilde(1), tilde(2)) = 0$. Actually, it can be shown that on $cal(C)$, $d : tilde(a), tilde(b) |-> min(abs(tilde(a) - tilde(b)), 1 - abs(tilde(a) - tilde(b)))$.
+
+The reader can verify that this measure is invariant with respect to spectrum rotation by any $lambda in R^*_+$ (ie $m(S, Delta) = m((tilde(lambda alpha_n))_(n in [|1, N|]), Delta)$), and does not depend on the normalisation intervall (here $[1, 2[$, but actually $[lambda, 2 lambda[$ would work just as well, with a different expression of $d$ on $cal(C)$). Finally, $0 <= m(S, Delta) <= 1$, and $m(S, Delta) = 0 <=> |S| = 0$, $m(S, Delta) = 1$ iff $S$ only contains values within a $2Delta$ range.
+
+This measure allows to quantify the quality of this model, without considering tempo octaves. @ann2 presents the C++ implementation of this measure used to obtain the following figures.
+
+résultats sur (n-)Asap selon les périodes, les compositeurs, etc..., éventuellement en annexe ?
+
+== Quantified approach <quanti>
+
+The previous model suppose the existence of an oracle, more or less correct in its predictions, that is actually a (partial) transcriber. In this section, we will focus on this transcribing part, by extending @romero-garcia_model_2022 model with the previous formalism.
 
   - LR
   - bidi (2 passes: LR + RL) : justification (en annexe) : retour à la définition formelle de Tempo : valide dans les deux sens, d'où la possibilité de le faire en bidirectionnel + parler rapidement d'une application à Large
@@ -251,27 +263,56 @@ plutôt en annexe je pense
 - accompagnement automatique RT
   avec approche 4 RT ?
 
-
-
 = Conclusion & perspectives
 
 - intégration pour couplage avec transcription par parsing (+ plus court chemin multi-critère)
-- lien approche partie 4 "spectrale" avec Large (amortisseur)
+- @quanti presented a model which appear to share some similarities with @large_dynamics_1999 as a score-based approach. Therefore, studying the formalism for a quantifier might allow to obtain some theorical results for the previous model, regarding for instance convergence guarantee and meaningfulness of the result.
 
 #bibliography("refs.bib", title: "References")
 
 #colbreak()
 
-#appendix([Formalism general results], [
-  == Equivalence of tempo formal definitions
+#appendix([Some formal considerations], [
+== Equivalence of tempo formal definitions
 
-  Let $n in NN$.
-  $integral_(t_0)^(t_(n)) T(t) dif t = sum_(i = 0)^(n-1) integral_(t_i)^(t_(i+1)) T(t) dif t$\
-  Furthermore, $integral_(t_n)^(t_(n+1)) T(t) dif t = integral_(t_0)^(t_(n+1)) T(t) dif t + integral_(t_n)^(t_0) T(t) dif t = integral_(t_0)^(t_(n+1)) T(t) dif t - integral_(t_0)^(t_n) T(t) dif t$.\
-  We thus obtain the two implications, hence the equivalence.
-  Rajouter quelques figures éventuellement, expliquer le problème d'octave de tempo + réf quelque part !
+Let $n in NN$.
+$integral_(t_0)^(t_(n)) T(t) dif t = sum_(i = 0)^(n-1) integral_(t_i)^(t_(i+1)) T(t) dif t$\
+Furthermore, $integral_(t_n)^(t_(n+1)) T(t) dif t = integral_(t_0)^(t_(n+1)) T(t) dif t + integral_(t_n)^(t_0) T(t) dif t = integral_(t_0)^(t_(n+1)) T(t) dif t - integral_(t_0)^(t_n) T(t) dif t$.\ \
+Let $T$ be a formal tempo according to the first definition. For all $n in NN$, we then have :\ $integral_(t_n)^(t_(n+1)) T(t) dif t &= integral_(t_0)^(t_(n+1)) T(t) dif t - integral_(t_0)^(t_n) T(t) dif t\
+&= b_(n+1) - b_0 - (b_n - b_0)\
+&= b_(n+1) - b_n$\
+Let $T$ be a formal tempo according to the second definition. For all $n in NN$ :\
+$integral_(t_0)^(t_(n)) T(t) dif t &= sum_(i = 0)^(n-1) integral_(t_i)^(t_(i+1)) T(t) dif t\
+&= sum_(i = 0)^(n-1) b_(i+1) - b_i\
+&= b_n - b_0$\
+We thus obtain the two implications, hence the equivalence.
 
-  == Going back in time
+== The tempo octave problem
+
+When estimating tempo, or transcribing a performance, there always exist several equivalent possibilities. For instance, given a "correct" transcription $(b_n)$ of a performance $(t_n)$, one can choose to define its own transcription as $t = (b_n / 2)_(n in NN)$.\
+Then, the canonical tempo according to $t$, called $(T_1^*)$, and the one according to $(b_n)$, called $(T_2^*)$ verify :\
+$forall n in NN, T_(1, n)^* = (b_(n+1) / 2 - b_n / 2) / (t_(n+1) - t_n) = 1/2 T_(2, n)^*$.
+Actually, the $t$ transcription corrections to $(b_n)$ where all durations are indicated doubled, but played twice faster, hence giving the exact same theorical performance. Unfortunately, there is no absolute way to decide which of those two transcription is better than the other. This problem is here known as the tempo octave problem, and should be keeped in mind when transcribing or estimating tempo. We present in @estimator_intro a model resistant to these tempo octaves, as well as other kind of octaves not discussed here (for instance multiplying the tempo by $3$ by using @triplet).
+
+
+== Tempo convservation when reversing time
+
+First, we want to insist on the fact that none of the sequence $(b_n)$ and $(t_n)$ are infinite, but in order to simplify the notation, we chose to indicate them as usual infinite sequences, or rather only consider them on a finite number of indexes, called $|(b_n)|$ and $|(t_n)|$ respectively, with $|(b_n)| = |(t_n)|$. Let us then define the reversed sequence of $(u_n)_(n in NN)$ as $r((u_n)_(n in NN)) := (overline(u_n) = u_(|(u_n)|) - u_(|(u_n)| - n))_(n in [|0, |(u_n)| |])$. Both $overline(b) = r((b_n)_(n in NN))$ and $overline(t) = r((t_n)_(n in NN))$ are correct representations of a sheet music and performance respectively, as defined in @formal_consider.
+
+Let $t^* = t_(|(t_n)|)$ and $q = |(t_n)|$, $T$ a formal tempo with respect to $(t_n)$ and $(b_n)$, ie $forall n in NN, integral_(t_n)^(t_(n+1)) T(t) dif t = b_(n+1) - b_n$, $n in [| 0, q - 1|]$, and $T_r : t |-> T(t^* - t)$.
+
+$integral_(overline(t_n))^(overline(t_(n+1))) T_r (t) dif t &= integral_(t^* - t_(q - n))^(t^* - t_(q - n-1)) T(t^* - t) dif t = integral_(t_(q - n))^(t_(q - n - 1)) -T(x) dif x\
+&= integral_(t_(q - n - 1))^(t_(q - n)) T(t) dif t\
+&= b_(q - n) - b_(q - n - 1)\
+&= (b_(q - n) - b_q) - (b_(q - n - 1) - b_q)\
+&= - overline(b_n) + overline(b_(n+1))\
+&= overline(b_(n+1)) - overline(b_n)$
+
+Hence $T_r$ is a formal tempo with respect to $(overline(t_n))$ and $(overline(b_n))$.
+
+== Musical explication of the choice of  a tempo distance
+
+In terms of tempo, halving and doubling are considered as far as each other from the initial value. Therefore a usual absolute distance does not fit this notion, and we will rather use a logarithmic distance when comparing tempi.
 ]) <ann1>
 
 #appendix([Estimator Model], [
@@ -288,6 +329,158 @@ plutôt en annexe je pense
   - si l'estimateur est l'identité : par hypothèse d'oracle, le tempo est constant, et joué parfaitement (ie fichier midi), et le résultat est le bon
 
   - l'estimateur n'est pas une fonction : l'output à un instant donné peut dépendre des outputs précédents (cas extrême : transcription en temps réel) : très bonne courbe, mais estimateur très complexe, or le problème ici est justement relaxé : ajouter un exemple de fausse transcription et de correcte avec les courbes de tempo correspondantes.
+
+The C++ code for the measure of $S, Delta$ is presented hereafter :
+
+```cpp
+#measure.hpp :
+using couple = std::pair<int, int>;
+
+bool couple_eq(couple c1, couple c2) {
+    auto [a, b] = c1;
+    auto [c, d] = c2;
+    return (a == c) && (b == d);
+}
+
+template <typename T>
+class Circle {
+    std::vector<T> t;
+    std::vector<int> count;
+    double x;
+    int len;
+    couple start;
+
+    public:
+    Circle(std::vector<T> spectre, double x, int i) : t(std::vector<T>()), count(std::vector<int>()), x(x), len(spectre.size()), start(couple(i, 0)) {
+        count.push_back(1);
+        t.push_back(spectre[0]);
+        for (unsigned int ind = 0; ind + 1 < spectre.size(); ind++) {
+            if (spectre[ind] == spectre[ind + 1]) {
+                count[count.size() - 1]++;
+            } else {
+                count.push_back(1);
+                t.push_back(spectre[ind+1U]);
+            }
+        }
+    }
+
+    int size() {
+        return t.size();
+    }
+
+    bool is_start(couple end) {
+        auto [i, k] = start;
+        auto [j, l] = end;
+        return i == j;
+    }
+
+    couple get_start() {
+        return start;
+    }
+
+    double get(couple a) {
+        auto [i, k] = a;
+        return t[i]+ x*k;
+    }
+
+    couple get_next(couple a) {
+        auto [i, k] = a;
+        if (i + 1 == t.size()) {
+            return couple(0, k+1);
+        }
+        return couple(i+1, k);
+    }
+
+    couple get_previous(couple a) {
+        auto [i, k] = a;
+        if (i == 0) {
+            return couple(t.size() - 1, k-1);
+        }
+        return couple(i-1, k);
+    }
+
+    int get_count(couple a) {
+        auto [i, _] = a;
+        return count[i];
+    }
+
+    int get_cardinal(couple a1, couple a2) {
+        auto [i1, k1] = a1;
+        auto [i2, k2] = a2;
+        int s = 0;
+        int delta = i2 - i1 + (k2 - k1) * t.size();
+        int q = delta / t.size();
+
+        for (int i = 0; i < t.size(); i++) {
+            int c = q;
+            if (i1 > i2) {
+                c += (i >= i1 || i <= i2);
+            } else {
+                c += (i >= i1 && i <= i2);
+            }
+            s += count[i] * c;
+        }
+        return s;
+    }
+
+    int length() {
+        return len;
+    }
+};
+
+#measure.cpp :
+double distance(double a, double b, double x) {
+    return fmin(fabs(a - b), x - fabs(a - b));
+}
+
+double get_measure(std::vector<double> spectre, const double delta, const double x, int i) {
+    std::sort(spectre.begin(), spectre.end());
+    Circle<double> c = Circle<double>(spectre, x, i);
+    couple ind_end = c.get_start();
+    couple ind_start = ind_end;
+    double d = c.get(ind_end) - delta;
+    for (int i = 0; i < c.size() - 1; i++) {
+        ind_start = c.get_previous(ind_start);
+        if (distance(c.get(ind_start), d, x) > delta) {
+            ind_start = c.get_next(ind_start);
+            break;
+        }
+    }
+    int p = c.get_cardinal(ind_start, ind_end);
+    int S = p;
+
+    int h = 0;
+    while (h+1 < c.size()) {
+        double d1 = delta - distance(c.get(ind_start), d, x); // Next start index change
+        if (c.get(ind_start) > d) {
+            d1 = -d1 + 2*delta;
+        }
+        double d2 = distance(c.get(c.get_next(ind_end)), d, x) - delta; // Next end index change
+
+        if (d1 <= d2) {
+            p -= c.get_count(ind_start);
+        }
+        if (d2 <= d1) {
+            h++; // A new point enters the delta area
+            p += c.get_count(ind_end);
+            S = fmax(S, p);
+        }
+        d += fmin(d1, d2);
+
+        if (d1 <= d2) {
+            ind_start = c.get_next(ind_start);
+            if (couple_eq(ind_start, ind_end)) {
+                ind_end = ind_start;
+            }
+        }
+
+        if (d2 <= d1) {
+            ind_end = c.get_next(ind_end);
+        }
+    }
+    return (double)S / (double)(c.length());
+}
+```
 ]) <ann2>
 
 #appendix([Quantified Model], [
@@ -300,11 +493,11 @@ Ainsi, on a : $epsilon_T (a) = display(max_(t in T) (min_(m in ZZ) abs(t - m a))
 
 On remarque de plus, pour $n in NN^*, T subset (RR^*_+)^n, a in R^*_+ : epsilon_T (a) = a epsilon_(T \/ a) (1)$. Hence the intuitive following result : the smaller the tatum, the smaller the bound of the error.
 
-== Caractérisation des maximums locaux
+== Caractérisation des maximums locaux qui ne sont pas des minimums locaux
 
 === First implication
 \
-Let $a$ be a local maxima of $epsilon_T$, $a > 0$.\
+Let $a$ be a local maxima (and not a local minima) of $epsilon_T$, $a > 0$. 
 By definition, there is a $a > epsilon > 0$ so that :\
 $forall delta in ]-epsilon, epsilon [, epsilon_T (a) >= epsilon_T (a + delta)$.\
 Let $t in display(argmax_(t' in T)) g(t' / a)$, hence $epsilon_T (a) = a g(t/a)$.\
@@ -322,7 +515,7 @@ $x in A &<=> exists (t_1, t_2) in T^2 : t_1 != t_2 and g(t_1/x) = g(t_2/x)\
 Hence $A subset {(t_1 minus.plus t_2) / n, (t_1, t_2) in T^2, n in ZZ^*}$, because $T subset (R^*_+)^(|T|)$.
 Therefore, there is a countable set of closed convex intervalls, which union is $R^*_+$ so that on each of these intervalls, $epsilon_T$ is equal to $f_t : a |-> a g(t/a)$ for a $t in T$. Let then $t$ be so that for all $x in ]a-delta', a[, epsilon_T (x) = f_t(x)$, where $]a-delta', a[$ is included in one the previous intervalls. Since $f_t$ and $epsilon_T$ are both continuous on $[a-delta', a], f_t (a) = epsilon_T (a)$ and therefore, $t in display(argmax_(t' in T)) g(t' / a)$. The previous paragraph showed that $g$ is increasing on a left neighbourhood of $t/a$. Therefore, on a right neighbourhood of $t/a$, $g$ is either increasing or decreasing by its definition.
 
-- if $g$ is increasing on this neighbourhood, called $N(t/a)^+$ in the following, the previous expression of $g$ remains valid, ie $forall x in N(t/a)^+, g(x) = x - floor(x)$. Moreover, $x |-> floor(x)$ is right-continuous, hence by restricting $N(t/a)^+$, we can assure for all $x in N(t/a)^+,floor(x) = floor(t/a)$. Let then $y = a - t/x$ so that $x = t/(a - y)$, we then have $epsilon_T (a - y) = t - (a - y) floor(t/a) <= epsilon_T (a) = t - a floor(t/a)$ because $a$ is a local maxima of $epsilon_T$ and $a - y$ is within a (left) neighbourhood of $a$, even if it means restricting $delta'$ or $N(t/a)^+$. Hence, $t - floor(t/a) a >= t - (a-y)floor(t/a)$ ie $a floor(t/a) <= (a - y) floor(t/a) <=> 0 <= -y floor(t/a)$ ie $floor(t/a) = 0$ ie $floor(t/a) = 0$, since $y, t "and" a$ are all positive values. Then, $a > t$ and in this case, the local maxima is not strict. Such a maxima is rather ininteresting in our study, since it corresponds to an intervall where $epsilon_T$ is constant (at least a left neighbourhood of $a$). Indeed, $epsilon_T (a - y) = t = epsilon_T (a)$ for $floor(t/a) = 0$. This constant intervall is then either going on infinitely on the right of $a$, or else $epsilon_T$ will reach a value greater than $epsilon_T (a) = t$, since $epsilon_T$ can then be rewritten as $x |-> max(display(max_(t' in T without {t}) x g(t'/x) ), epsilon_T (a))$ on $[a, +infinity[$, hence the interesting point, if any, will be a local minimal, that we will consider later. GIVE THE EXPRESSION TO FIND IT OR MODIFY THE ALGORITHM TO FIND IT AS WELL.\ On the other hand, on the left of $a$ : BETTER LOCAL MAXIMA TO BE FOUND.
+- if $g$ is increasing on this neighbourhood, called $N(t/a)^+$ in the following, the previous expression of $g$ remains valid, ie $forall x in N(t/a)^+, g(x) = x - floor(x)$. Moreover, $x |-> floor(x)$ is right-continuous, hence by restricting $N(t/a)^+$, we can assure for all $x in N(t/a)^+,floor(x) = floor(t/a)$. Let then $y = a - t/x$ so that $x = t/(a - y)$, we then have $epsilon_T (a - y) = t - (a - y) floor(t/a) <= epsilon_T (a) = t - a floor(t/a)$ because $a$ is a local maxima of $epsilon_T$ and $a - y$ is within a (left) neighbourhood of $a$, even if it means restricting $delta'$ or $N(t/a)^+$. Hence, $t - floor(t/a) a >= t - (a-y)floor(t/a)$ ie $a floor(t/a) <= (a - y) floor(t/a) <=> 0 <= -y floor(t/a)$ ie $floor(t/a) <= 0$ ie $floor(t/a) = 0$, since $y, t "and" a$ are all positive values. Then, $a > t$ and therefore $epsilon_T (a - y) = t = epsilon_T (a)$ for $floor(t/a) = 0$. This intervall where $epsilon_T$ is constant is then either going on infinitely on the right of $a$, or else $epsilon_T$ will reach a value greater than $epsilon_T (a) = t$, since $epsilon_T$ can then be rewritten as $x |-> max(display(max_(t' in T without {t}) x g(t'/x) ), epsilon_T (a))$ on $[a, +infinity[$. Hence $a$ is a local minima on the right, and since $epsilon_T$ is constant on a left neighbourhood of $a$, $a$ is also a local minima on the left. Finally, $a$ is a local minima, which is absurd by definition.
 
 - else, $g$ is decreasing on $N(t/a)^+$, $t/a$ is by definition a local maxima of $g$. However, $g$ only has a unique local maxima modulo 1, that is $1/2$. Hence, $t/a = 1/2 mod 1$, ie $t/a = 1/2 + k, k in ZZ$, or $underline(a = t/(k + 1/2)\, k in NN)$, since $a > 0$.
 
@@ -370,15 +563,44 @@ To conclude, for all $x in ]0, a'[$,
 - if $x <= a$, $epsilon_T (a) >= epsilon_T (x)$
 - if $x >= a, x in [a, a'[$ and $epsilon_T (a) >= epsilon_T (x)$
 
-Hence $a$ is a local maxima of $epsilon_T$, and the set of all local maxima of $epsilon_T$ is $M_T = {t / (k + 1/2), t in T, k in NN}$ $qed$
+Hence $a$ is a local maxima of $epsilon_T$ and not a local minima, and then the set of all such local maxima of $epsilon_T$ is $M_T = {t / (k + 1/2), t in T, k in NN}$ $qed$
 
 == Caractérisation des minimums locaux
 
 Let $a$ be a local minima of $epsilon_T$, ie 
 
+
+$epsilon_T$ is constant on a neighbourhood of $+ infinity$, donc on va d'abord trouver un maximum local qui n'est pas un minimum local, puis le reste de la preuve fonctionne
+
 Par continuité de $epsilon_T$, on est assuré de l'existence d'exactement un unique minimum local entre deux maximums locaux, qui est alors global sur cet intervalle.\
 Par la condition nécessaire précédente, il suffit donc, pour déterminer ce minimum local, de déterminer le plus petit élément parmi les points obtenus, contenus dans l'intervalle.\
 On en déduit ainsi un algorithme en $cal(O)(|T^2| t^* / tau log( |T| t^* / tau))$ permettant de déterminer tous les minimums locaux accordés par le seuil $tau$ fixé, sur l'intervalle $]2 tau, t_* + tau[$
+
+On en déduit la correction de l'algorithme ci-dessous :
+```python
+def find_local_minima(T, start, end):
+    assert(len(T) > 0)
+    maxs = [t / (k+0.5) for t in T for k in range(int(t/end), int(t/start)+1)] # According to caracterization
+    maxs.sort()
+    potentials = [(t1+t2) / k for t1 in T for t2 in T for k in range(max(1, int((t1+t2)/end)), int((t1+t2)/start)+1) if t1 < t2]
+    potentials.sort() # Only a necessary condition
+
+    if len(potentials) == 0: # Implies : T = {T[0]}
+        potentials = [T[0]/k for k in range(int(T[0]/end), int(T[0]/start)+1)[::-1]] # Already sorted
+        mins = potentials # In this specific case, the condition is an equivalence
+    else:
+        j = 0
+        mins = []
+        for i in range(len(maxs)-1):
+            pot_mins = []
+            while j < len(potentials) and maxs[i] <= potentials[j] < maxs[i+1] :
+                pot_mins.append(potentials[j])
+                j += 1
+            if len(pot_mins) > 0:
+                mins.append(np.min(pot_mins))
+
+    return mins
+```
 ]) <gonzalo_spectre>
 
 #appendix([Musical Glossary], [
@@ -468,6 +690,13 @@ On en déduit ainsi un algorithme en $cal(O)(|T^2| t^* / tau log( |T| t^* / tau)
         key:"measure",
         short:"measure",
         desc:[Une mesure est une unité de temps musicale, contenant un certain nombre (entier) de beat. Ce nombre est indiqué par la @timesig],
+        group:"Definitions"
+      ),
+
+      (
+        key:"triplet",
+        short:"triplet",
+        desc:[A triplet is a musical symbol indicating to play a third of the indicated duration],
         group:"Definitions"
       ),
 
