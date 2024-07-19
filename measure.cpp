@@ -9,11 +9,7 @@ void print_couple(couple a) {
 }
 
 double distance(double a, double b, double x) {
-    if (a > b) {
-        return distance(b, a, x);
-    }
-    //return fabs(a-b);
-    return fmin(fabs(a - b), fabs(a+x - b));
+    return fmin(fabs(a - b), x - fabs(a - b));
 }
 
 double get_measure(std::vector<double> spectre, const double delta, const double x, int i) {
