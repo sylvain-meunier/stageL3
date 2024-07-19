@@ -1,4 +1,5 @@
 import numpy as np
+from quantization import find_local_minima, error
 import matplotlib.pyplot as plt
 
 def f(a, t) :
@@ -8,7 +9,7 @@ def g(a, t) :
     return min(f(a, t), 1 - f(a, t))
 
 def k(a, T):
-    return a * np.sum([g(a, t) for t in T])
+    return a * np.max([g(a, t) for t in T])
 
 def plot1():
     T = np.array([0.98, 1.52])
@@ -28,4 +29,20 @@ def plot1():
     plt.plot(x, y, '.', markersize=2)
     plt.show()
 
-plot1()
+def plot2():
+    T = np.array([0.98, 1.52])
+    tau = 0.01
+    start = 2*tau
+    end = 3*tau
+    x = np.arange(start, end, (end-start)/100000) # step at 1ms
+    y = [error(a, T) for a in x]
+
+    tmp = find_local_minima(T, start, end)
+    plt.xscale("log")
+    for a in range(len(tmp)):
+        plt.axvline(x=tmp[a], color="lightgray", markersize=1, label='c')
+
+    plt.plot(x, y, '.', markersize=2)
+    plt.show()
+
+plot2()

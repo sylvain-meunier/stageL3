@@ -3,8 +3,8 @@ from large_et_al import measure
 
 NB_LINE = 1018
 folder = "Performance/"
-pick_path = "random_measure.pick"
-save_path = folder + "random_performance_test.txt"
+pick_path = "measure.pick"
+save_path = folder + "performance.txt"
 
 data = load_pick(pick_path)
 already_done = load_done(save_path)
