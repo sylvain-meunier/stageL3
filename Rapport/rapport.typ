@@ -1,4 +1,6 @@
 #import "@preview/charged-ieee:0.1.0": ieee
+#import "@preview/lovelace:0.3.0": *
+#import "@preview/lemmify:0.1.5": *
 #import "@preview/glossarium:0.4.1": make-glossary, print-glossary, gls, glspl
 #show: make-glossary
 #show link: set text(fill: blue.darken(60%))
@@ -20,6 +22,14 @@
 )
 
 #show figure : set figure.caption (position: bottom)
+
+#let (
+  theorem, lemma, corollary,
+  remark, proposition, example,
+  proof, rules: thm-rules
+) = default-theorems("thm-group", lang: "en")
+
+#show: thm-rules
 
 #let nb_eq(content) = math.equation(
     block: true,
@@ -76,7 +86,7 @@ In this report, we will present the following contributions :
 - a justified proposition for a formal definition of tempo based on @raphael_probabilistic_2001, @kosta_mazurkabl:_2018 and @hu_batik-plays-mozart_2023 ; and some immediate consequences (#link(<formal_consider>)[III.A], #link(<naive_use>)[III.B])
 - a revision of @large_dynamics_1999 and @schulze_keeping_2005 to fit a score-based approach (#link(<largmodif>)[III.C])
 - a theorical framework for scoreless tempo estimation (#link(<estimator_intro>)[IV.B])
-- an extension of @romero-garcia_model_2022, to fit tempo estimation, and associated theorical results and proofs (#link(<quanti>)[IV.D] and @gonzalo_spectre)
+- an extension of @romero-garcia_model_2022, to fit tempo estimation, and some new theorical results (#link(<quanti>)[IV.D], #link(<quanti_revised>)[IV.E] and @gonzalo_spectre)
 - generated data based on @foscarin_asap:_2020 and @peter_automatic_2023
 
 
@@ -102,7 +112,7 @@ Likewise, a sheet music will be represented as a strictly increasing sequence of
 With those definitions, let us formally define tempo $T(t)$ so that, for all $n in NN$, $integral_(t_0)^(t_n) T(t) dif t = b_n - b_0$.\
 @ann1 shows that this definition is equivalent to : $forall n in NN, integral_(t_n)^(t_(n+1)) T(t) dif t = b_(n+1) - b_n$.
 However, tempo is only tangible (or observable) between two events _a priori_. We will then define the canonical tempo $T^*(t)$ so that :\
-$forall x in RR^+, forall n in NN, x in bracket t_n, t_(n+1) bracket => T^*(x) = (b_(n+1) - b_n) / (t_(n+1) - t_n)$.\
+$forall x in RR^+, forall n in NN, x in bracket t_n, t_(n+1) bracket => T^*(x) = (b_(n+1) - b_n) / (t_(n+1) - t_n)$ <tempo_definition>.\
 The reader can verify that this function is a formal tempo according to the previous definition. From now on, we will consider the convention : $t_0 = 0 "(s)"$ et $b_0 = 0 "(beat)"$.\
 
 Even though there is a general consensus in the field as for the interest and informal definition of tempo, several formal definitions coexist within litterature : @shibata_non-local_2021 and @nakamura_stochastic_2015 take $1 / T^*$ as definition ; @raphael_probabilistic_2001, @kosta_mazurkabl:_2018 et @hu_batik-plays-mozart_2023 choose similar definitions than the one given here (approximated at the scale of a  @measure or a section for instance).\
@@ -206,7 +216,7 @@ $alpha_n T_(n+1)^* = underbrace(alpha_n T^*_n, T_n) (Delta t_n) / (Delta t_(n+1)
 In the above formula, the only value to actually estimate is therefore $(b_(n+2) - b_(n+1)) / (b_(n+1) - b_n)$, where both the numerator and denumerator are translation permissive (ie we can afford a locally constant shift in both of our estimation), hence the resulting value is invariant by translation, or constant multiplication of our estimation. Furthermore, the value to be estimated only deals with symbolic units, meaning that we can use musical properties to find a consistent result. As a result, we can obtain a tempo estimation with the same multiplicative shift as the previous estimation $T_n$, thus, by using the formula recursively, we obtain a model that can track tempo variations over time without any need of convergence, and that is robust to tempo initialization, while using only local methods (in other words, the resulting model is @online). As noticed in the beginning of this section, symbolic value have some bindings that actually help to determine their values. Moreover, we find : $(Delta b_(n+1)) / (Delta b_n) = (T_(n+1)^* Delta t_(n+1)) / (T_(n)^* Delta t_(n)) = (1/alpha_n T_(n+1)) / (1/alpha_n T_n) times (Delta t_(n+1)) / (Delta t_(n))$,\
 hence $(Delta b_(n+1)) / (Delta b_n) = T_(n+1) / T_n times (Delta t_(n+1)) / (Delta t_(n))$.\
 Let us then write the actual formula of the model :\
-#nb_eq($T_(n+1) / T_n = (Delta t_n) / (Delta t_(n+1)) underbrace(E(T_(n+1) / T_n times (Delta t_(n+1)) / (Delta t_(n))), display((Delta b_(n+1)) / (Delta b_n)))$) <estimator>\
+#nb_eq($T_(n+1) / T_n = (Delta t_n) / (Delta t_(n+1)) underbrace(E(T_(n+1) / T_n times (Delta t_(n+1)) / (Delta t_(n))), display((Delta b_(n+1)) / (Delta b_n)))$) <estimator>
 where $E$ is a function-like object (closer to a _object_ in computer science than an actual mathematical function), designated by _estimator_. This function is supposed to act, on a theorical ground, as an oracle that returns the correct value of the symbolic $(Delta b_(n+1)) / (Delta b_n)$ from the given real values indicated in @estimator, therefore supposed to rarely match the theorical values.\
 
 Given an estimator $E$, the tempo value defined as $T_(n+1)$, computed from both $T_n$ and local data, is obtained _via_ the following equation, where $x$ represents $T_(n+1) / T_n$ in @estimator : \
@@ -224,24 +234,73 @@ Since this approach fundamentally search to estimate tempo variation rather than
 We then define the _measure_ of a spectrum $S$, that embodies a standard deviation on $cal(C)$, so that : #nb_eq[$m(S, Delta) = max_(tilde(d) in cal(C)) ( |{n in [|1, |S| |] : d(tilde(alpha_n), tilde(d)) <= Delta}|) / (|S|)$]
 Where $Delta in [0, 1/2]$ embodies the measure accuracy, and $d$ is still a logarithmic distance, slightly modified on $cal(C)$ to be consistent with $d(tilde(1), tilde(2)) = 0$. Actually, it can be shown that on $cal(C)$, $d : tilde(a), tilde(b) |-> min(abs(tilde(a) - tilde(b)), 1 - abs(tilde(a) - tilde(b)))$.
 
-The reader can verify that this measure is invariant with respect to spectrum rotation by any $lambda in R^*_+$ (ie $m(S, Delta) = m((tilde(lambda alpha_n))_(n in [|1, N|]), Delta)$), and does not depend on the normalisation intervall (here $[1, 2[$, but actually $[lambda, 2 lambda[$ would work just as well, with a different expression of $d$ on $cal(C)$). Finally, $0 <= m(S, Delta) <= 1$, and $m(S, Delta) = 0 <=> |S| = 0$, $m(S, Delta) = 1$ iff $S$ only contains values within a $2Delta$ range.
+The reader can verify that this measure is invariant with respect to spectrum rotation by any $lambda in R^*_+$ (ie $m(S, Delta) = m((tilde(lambda alpha_n))_(n in [|1, N|]), Delta)$), and does not depend on the normalisation interval (here $[1, 2[$, but actually $[lambda, 2 lambda[$ would work just as well, with a different expression of $d$ on $cal(C)$). Finally, $0 <= m(S, Delta) <= 1$, and $m(S, Delta) = 0 <=> |S| = 0$, $m(S, Delta) = 1$ iff $S$ only contains values within a $2Delta$ range.
 
-This measure allows to quantify the quality of this model, without considering tempo octaves. @ann2 presents the C++ implementation of this measure used to obtain the following figures.
+This measure allows to quantify the quality of this model, without considering tempo octaves, or equivalently to quantify the quality of the estimator. @ann2 presents the C++ implementation of this measure used to obtain the following figures.
 
 résultats sur (n-)Asap selon les périodes, les compositeurs, etc..., éventuellement en annexe ?
 
-== Quantified approach <quanti>
+== Towards a quantified approach <quanti>
 
-The previous model suppose the existence of an oracle, more or less correct in its predictions, that is actually a (partial) transcriber. In this section, we will focus on this transcribing part, by extending @romero-garcia_model_2022 model with the previous formalism.
+The previous model suppose the existence of an oracle, more or less correct in its predictions, that is actually a (partial) transcriber. In this section, we will focus on this transcribing part, by extending @romero-garcia_model_2022 model with the previous formalism. In fact, we extend the previous approach by considering the estimator as our central model and then extracting tempo values rather than the opposite.
+
+Let $n in NN^*$ and $D subset (R^+)^n$ be a set of some durations of real time events. #cite(<romero-garcia_model_2022>, form: "normal") defined the continuous function $epsilon_D$ as :
+$ epsilon_D : a |-> max_(d in D) min_(m in ZZ) thick |d - m a| $
+This function is called the _transcription error_, and can be interpretated as maximum error (in real time unit) between all real events $d in D$ and theorical real duration of $m a$, where $m$ is a symbolic notation expressed in arbitrary symbolic unit, and $a$ a real time value corresponding to a @tatum at a given tempo. We proove in @gonzalo_spectre that the set of all local maxima of $epsilon_D$, except those that also are minima, is : #nb_eq($M_D &= {d / (k+1/2), d in D, k in NN}\ &= limits(union.big)_(d in D) {d/(k+1/2), k in NN}$) <local_maxima>
+In fact, each of these local maxima corresponds to a change of the $m$ giving the minimum in the expression of $epsilon_D$, hence the following result : in-between two such successive local maxima, the quantification remains the same, ie :
+#proposition[Let $m_1, m_2$ be two successive local maxima of $epsilon_D$, $a_1 in ]m_1, m_2[, a_2 in [m_1, m_2], d in D$ and $m in ZZ$.\ Then $m in display(argmin_(k in ZZ)) |d - k a_1| => m in display(argmin_(k in ZZ)) |d - k a_2|$.] <same_quantification>
+
+With this property, we can then choose to consider only local minima of $epsilon_D$ as in #cite(<romero-garcia_model_2022>, form: "normal"), since there is exactly one local minima in-between two such successive local maxima, and choosing any other value in this range would result in the exact same transcription, with a higher error by definition of a local maxima (that is global on the considered interval). The correctness of the following algorithm to find all local minima within a given interval is proven in @gonzalo_spectre.
+
+#figure(
+  kind: "algorithm",
+  supplement: [Algorithm],
+  caption: [Returns all local minima within $[$start, end$]$],
+pseudocode-list(booktabs: true, hooks: .5em, title: [FindLocalMinima($D != emptyset$, start, end) :])[
+  + $M <- {d / (k + 1/2), d in D, k in [|d/"end", d/"start"  |]} $
+  + $P <- {(d_1 + d_2) / k, (d_1, d_2) in D^2, k in [|(d_1+d_2)/"end", (d_1+d_2) / "start"|] } $
+  + $"localMinima" <- emptyset$
+  + *for* $(m_1, m_2) in M^2$ two successive maxima :
+    + $"in_range" <- {p in P : m_1 <= p < m_2}$
+    + $"localMinima" <- "localMinima" union {min("in_range")}$
+  + *return* $"localMinima"$
+]) <algonzalo>
+
+@romero-garcia_model_2022 then defined $G = (V, E)$ a graph which vertices are the local minima of $epsilon_D$ with $D$ a sliding window, or _frame_, on a given performance, and which edges are so that they can guarantee a _consistency property_, explained hereafter.
+
+The _consistency property_ for two tatums $a_1, a_2$ specifies that, if $F_sect$ is the set of all values in common between two successive frame, for all $d in F_sect$, $d$ is quantified the same way according to the tatum $a_1$ and $a_2$, ie the symbolic value of $d$ is the same when considering either $a_1$ of $a_2$ as the duration of the same given tatum at some tempo (respectively $1/a_1$ and $1/a_2$ as shown in @quanti_revised). From these definitions, we can now define a _tempo curve_ as a path in $G$. In fact, #cite(<romero-garcia_model_2022>, form: "normal") call such a path a _transcription_ rather than a tempo curve, but since an exact tempo curve would be $(T_n^*)$, those two problems are actually equivalent.
+
+Actually, the consistency property is not that restrictive when considering tempo curves. Let $F_1, F_2$ be two successive frames, $F_sect = F_1 sect F_2$, $d in F_sect$, and $p$ a path in $G$ containing a local minima $a_1$ of $epsilon_F_1$. According to @local_maxima, we can divide the set of all local maxima in two, with those "caused" by $F_sect$, $M_F_sect$, and the others. Let then $m_1, m_2 in M_F_sect$. Those are local maxima for both $epsilon_F_1$ and $epsilon_F_2$ by @local_maxima since $F_sect subset F_2$, and therefore there is at least one local minima within the range $]m_1, m_2[$ for both of these functions. However, thanks to @same_quantification, we know that both these local minima will quantify the elements of $D$ the same way. Hence, by defining :
+- $m_1 = max{m in M_F_sect : m < a_1}$
+- $m_2 = min{m in M_F_sect : m > a_1}$
+- $a_2$ a local minima of $epsilon_F_2$ in the range $]m_1, m_2[$, which exists since $m_1$ and $m_2$ are local maxima (that are not local minima).
+We obtain : $(a_1, a_2)$ is _consistent_ according to the consistency property.
+
+#corollary[
+  The _consistency property_ only implies restrictions relative to the interval of research. In other words, any given strictly partial path $p$ in $G$ can be extended, even if it means considering a bigger interval, for any given performance, and any given frame length for defining $G$.
+]
+
+However, this restriction on $G$ appears to have some interest. Indeed, let $p$ a path in $G$ locally inconsistent, ie such that $a_1, a_2 in p$ so that $d in D$ is quantified differently according to $a_1$ and $a_2$, with $a_1$ and $a_2$ local minima of successive frames. We therefore have a two partial transcriptions of $d$ being either : $m_1$ at tempo $1/a_1$ and $m_2$ at tempo $1/a_2$, $m_1, m_2$ expressed in tatum unit, with $m_1 != m_2$.
+WHAT IS THE POINT ?
+== Quantification revised <quanti_revised>
+
+Let us define from now our tatum $epsilon = 1/60 ♩$, which correspond to an sixteenth note wrapped within a triplet within a quintuplet, and has the property that $1 " " epsilon \/ s = 1 " " ♩ \/ m$.\
+
+With our tatum defined, we can now choose to express all our symbolic units as multiple of this tatum, hence the unit for symbolic values is now $epsilon$. We then have : $T = (Delta b) / (Delta t) = (1 epsilon) / a$, where $a$ is the theorical duration of $epsilon$ at tempo $T$.
+From there, we can define $sigma_D : a |->  1/a epsilon_D (a)$, the _normalized error_, or _symbolic error_, since it embodies the error between a transcription of $d in D$ as $m$ expressed in tatum, hence a quantified and valid transcription, and $d times 1/a = d times T$, which is the expression of the symbolic duration of $d$ at tempo $T$ according to the #link(<tempo_definition>, [definition of canonical tempo]).
 
   - LR
   - bidi (2 passes: LR + RL) : justification (en annexe) : retour à la définition formelle de Tempo : valide dans les deux sens, d'où la possibilité de le faire en bidirectionnel + parler rapidement d'une application à Large
   - RT : avec valeur initiale de tempo
+
 == résultats évaluation (comparaison avec 3)
 
-plutôt en annexe je pense
-
-
+#figure(
+  image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%),
+  caption: [
+    All possible tempo curves for a performance of Piano Sonata No. 11 in A Major (K. 331: III), W.A Mozart.\ The tempo scale is linear between ♩ = 40 (bottom) and ♩ = 240 (top)
+  ],
+)
 
 = Applications
 
@@ -266,7 +325,7 @@ plutôt en annexe je pense
 = Conclusion & perspectives
 
 - intégration pour couplage avec transcription par parsing (+ plus court chemin multi-critère)
-- @quanti presented a model which appear to share some similarities with @large_dynamics_1999 as a score-based approach. Therefore, studying the formalism for a quantifier might allow to obtain some theorical results for the previous model, regarding for instance convergence guarantee and meaningfulness of the result.
+- @quanti_revised presented a model which appear to share some similarities with @large_dynamics_1999 as a score-based approach. Therefore, studying the formalism for a quantifier might allow to obtain some theorical results for the previous model, regarding for instance convergence guarantee and meaningfulness of the result.
 
 #bibliography("refs.bib", title: "References")
 
@@ -513,9 +572,9 @@ $x in A &<=> exists (t_1, t_2) in T^2 : t_1 != t_2 and g(t_1/x) = g(t_2/x)\
 &<=> exists (t_1, t_2) in T^2 : t_1 != t_2 and t_1/x = plus.minus t_2 / x mod 1\
 &<=> exists (t_1, t_2) in T^2 : t_1 != t_2 and x = (t_1 minus.plus t_2) / n, n in ZZ^*$\
 Hence $A subset {(t_1 minus.plus t_2) / n, (t_1, t_2) in T^2, n in ZZ^*}$, because $T subset (R^*_+)^(|T|)$.
-Therefore, there is a countable set of closed convex intervalls, which union is $R^*_+$ so that on each of these intervalls, $epsilon_T$ is equal to $f_t : a |-> a g(t/a)$ for a $t in T$. Let then $t$ be so that for all $x in ]a-delta', a[, epsilon_T (x) = f_t(x)$, where $]a-delta', a[$ is included in one the previous intervalls. Since $f_t$ and $epsilon_T$ are both continuous on $[a-delta', a], f_t (a) = epsilon_T (a)$ and therefore, $t in display(argmax_(t' in T)) g(t' / a)$. The previous paragraph showed that $g$ is increasing on a left neighbourhood of $t/a$. Therefore, on a right neighbourhood of $t/a$, $g$ is either increasing or decreasing by its definition.
+Therefore, there is a countable set of closed convex intervals, which union is $R^*_+$ so that on each of these intervals, $epsilon_T$ is equal to $f_t : a |-> a g(t/a)$ for a $t in T$. Let then $t$ be so that for all $x in ]a-delta', a[, epsilon_T (x) = f_t(x)$, where $]a-delta', a[$ is included in one the previous intervals. Since $f_t$ and $epsilon_T$ are both continuous on $[a-delta', a], f_t (a) = epsilon_T (a)$ and therefore, $t in display(argmax_(t' in T)) g(t' / a)$. The previous paragraph showed that $g$ is increasing on a left neighbourhood of $t/a$. Therefore, on a right neighbourhood of $t/a$, $g$ is either increasing or decreasing by its definition.
 
-- if $g$ is increasing on this neighbourhood, called $N(t/a)^+$ in the following, the previous expression of $g$ remains valid, ie $forall x in N(t/a)^+, g(x) = x - floor(x)$. Moreover, $x |-> floor(x)$ is right-continuous, hence by restricting $N(t/a)^+$, we can assure for all $x in N(t/a)^+,floor(x) = floor(t/a)$. Let then $y = a - t/x$ so that $x = t/(a - y)$, we then have $epsilon_T (a - y) = t - (a - y) floor(t/a) <= epsilon_T (a) = t - a floor(t/a)$ because $a$ is a local maxima of $epsilon_T$ and $a - y$ is within a (left) neighbourhood of $a$, even if it means restricting $delta'$ or $N(t/a)^+$. Hence, $t - floor(t/a) a >= t - (a-y)floor(t/a)$ ie $a floor(t/a) <= (a - y) floor(t/a) <=> 0 <= -y floor(t/a)$ ie $floor(t/a) <= 0$ ie $floor(t/a) = 0$, since $y, t "and" a$ are all positive values. Then, $a > t$ and therefore $epsilon_T (a - y) = t = epsilon_T (a)$ for $floor(t/a) = 0$. This intervall where $epsilon_T$ is constant is then either going on infinitely on the right of $a$, or else $epsilon_T$ will reach a value greater than $epsilon_T (a) = t$, since $epsilon_T$ can then be rewritten as $x |-> max(display(max_(t' in T without {t}) x g(t'/x) ), epsilon_T (a))$ on $[a, +infinity[$. Hence $a$ is a local minima on the right, and since $epsilon_T$ is constant on a left neighbourhood of $a$, $a$ is also a local minima on the left. Finally, $a$ is a local minima, which is absurd by definition.
+- if $g$ is increasing on this neighbourhood, called $N(t/a)^+$ in the following, the previous expression of $g$ remains valid, ie $forall x in N(t/a)^+, g(x) = x - floor(x)$. Moreover, $x |-> floor(x)$ is right-continuous, hence by restricting $N(t/a)^+$, we can assure for all $x in N(t/a)^+,floor(x) = floor(t/a)$. Let then $y = a - t/x$ so that $x = t/(a - y)$, we then have $epsilon_T (a - y) = t - (a - y) floor(t/a) <= epsilon_T (a) = t - a floor(t/a)$ because $a$ is a local maxima of $epsilon_T$ and $a - y$ is within a (left) neighbourhood of $a$, even if it means restricting $delta'$ or $N(t/a)^+$. Hence, $t - floor(t/a) a >= t - (a-y)floor(t/a)$ ie $a floor(t/a) <= (a - y) floor(t/a) <=> 0 <= -y floor(t/a)$ ie $floor(t/a) <= 0$ ie $floor(t/a) = 0$, since $y, t "and" a$ are all positive values. Then, $a > t$ and therefore $epsilon_T (a - y) = t = epsilon_T (a)$ for $floor(t/a) = 0$. This interval where $epsilon_T$ is constant is then either going on infinitely on the right of $a$, or else $epsilon_T$ will reach a value greater than $epsilon_T (a) = t$, since $epsilon_T$ can then be rewritten as $x |-> max(display(max_(t' in T without {t}) x g(t'/x) ), epsilon_T (a))$ on $[a, +infinity[$. Hence $a$ is a local minima on the right, and since $epsilon_T$ is constant on a left neighbourhood of $a$, $a$ is also a local minima on the left. Finally, $a$ is a local minima, which is absurd by definition.
 
 - else, $g$ is decreasing on $N(t/a)^+$, $t/a$ is by definition a local maxima of $g$. However, $g$ only has a unique local maxima modulo 1, that is $1/2$. Hence, $t/a = 1/2 mod 1$, ie $t/a = 1/2 + k, k in ZZ$, or $underline(a = t/(k + 1/2)\, k in NN)$, since $a > 0$.
 
@@ -563,7 +622,7 @@ To conclude, for all $x in ]0, a'[$,
 - if $x <= a$, $epsilon_T (a) >= epsilon_T (x)$
 - if $x >= a, x in [a, a'[$ and $epsilon_T (a) >= epsilon_T (x)$
 
-Hence $a$ is a local maxima of $epsilon_T$ and not a local minima, and then the set of all such local maxima of $epsilon_T$ is $M_T = {t / (k + 1/2), t in T, k in NN}$ $qed$
+Hence $a$ is a local maxima of $epsilon_T$ and not a local minima, and then the set of all such local maxima of $epsilon_T$ is $M_T = {t / (k + 1/2), t in T, k in NN}$ and therefore with the notations introduced in @quanti, we proved @local_maxima $qed$
 
 == Caractérisation des minimums locaux
 
@@ -576,31 +635,7 @@ Par continuité de $epsilon_T$, on est assuré de l'existence d'exactement un un
 Par la condition nécessaire précédente, il suffit donc, pour déterminer ce minimum local, de déterminer le plus petit élément parmi les points obtenus, contenus dans l'intervalle.\
 On en déduit ainsi un algorithme en $cal(O)(|T^2| t^* / tau log( |T| t^* / tau))$ permettant de déterminer tous les minimums locaux accordés par le seuil $tau$ fixé, sur l'intervalle $]2 tau, t_* + tau[$
 
-On en déduit la correction de l'algorithme ci-dessous :
-```python
-def find_local_minima(T, start, end):
-    assert(len(T) > 0)
-    maxs = [t / (k+0.5) for t in T for k in range(int(t/end), int(t/start)+1)] # According to caracterization
-    maxs.sort()
-    potentials = [(t1+t2) / k for t1 in T for t2 in T for k in range(max(1, int((t1+t2)/end)), int((t1+t2)/start)+1) if t1 < t2]
-    potentials.sort() # Only a necessary condition
-
-    if len(potentials) == 0: # Implies : T = {T[0]}
-        potentials = [T[0]/k for k in range(int(T[0]/end), int(T[0]/start)+1)[::-1]] # Already sorted
-        mins = potentials # In this specific case, the condition is an equivalence
-    else:
-        j = 0
-        mins = []
-        for i in range(len(maxs)-1):
-            pot_mins = []
-            while j < len(potentials) and maxs[i] <= potentials[j] < maxs[i+1] :
-                pot_mins.append(potentials[j])
-                j += 1
-            if len(pot_mins) > 0:
-                mins.append(np.min(pot_mins))
-
-    return mins
-```
+On en déduit la correction de @algonzalo.
 ]) <gonzalo_spectre>
 
 #appendix([Musical Glossary], [
@@ -610,7 +645,7 @@ def find_local_minima(T, start, end):
 
       (key:"tempo",
       short: "tempo",
-      desc:[\ Défini formellement p. 2 selon la formule : $T_n^"*" = (b_(n+1) - b_n) / (t_(n+1) - t_n)$. Informellement, le tempo est une mesure la vitesse instantanée d'une performance, souvent indiqué sur la partition. On peut le voir comme le rapport entre la vitesse symbolique supposée par la partition, et la vitesse réelle d'une performance. Le tempo est usuellement indiqué en @beat par minute, ou bpm],
+      desc:[\ Défini formellement en #link(<tempo_definition>, [Section III]) selon la formule : $T_n^"*" = (b_(n+1) - b_n) / (t_(n+1) - t_n)$. Informellement, le tempo est une mesure la vitesse instantanée d'une performance, souvent indiqué sur la partition. On peut le voir comme le rapport entre la vitesse symbolique supposée par la partition, et la vitesse réelle d'une performance. Le tempo est usuellement indiqué en @beat par minute, ou bpm],
       group:"Definitions"),
 
       (key:"beat", short:"beat",
