@@ -155,7 +155,7 @@ Even though this model shows pretty good results, has been validated through som
 
 In order to simplify the previous model, @schulze_keeping_2005 present _TimeKeeper_, that can be seen as a linearization of the previous approach, valid in the theorical framwork of a metronome presenting small tempo variations. In fact, there is a strong analogy between the two models, that are almost equivalent under specific circumstances, as shown by @loehr_temporal_2011. Here, we used the derandomised version presented in #cite(<loehr_temporal_2011>, form: "normal"), where $M_i = 0$ and $T_i = tau_i$ for all $i in NN$.
 
-None of those models have an inherent comprehension of musical score information, since the both rely on a rather stable metronome. In the version displayed hereafter, they were modified to consider score information, in order to to create a more stable and precise value of tempo than the naive approach previously presented. Those modifications are detailled in the following paragraph (OR IN APPENDIX ?), and were made in order to keep consistency with the original models in their initial theorical framework of validity.
+None of those models have an inherent comprehension of musical score information, since they both rely on a rather stable metronome. In the version displayed hereafter, they were modified to consider score information, in order to to create a more stable and precise value of tempo than the naive approach previously presented. Those modifications are detailled in the following paragraph (OR IN APPENDIX ?), and were made in order to keep consistency with the original models in their initial theorical framework of validity.
 Let $display(min_"abs") : a, b |-> cases(a "if" |a| < |b|, b "otherwise")$\
 
 We first modify the @large_dynamics_1999 equations accordingly : <largmodif>
@@ -201,29 +201,32 @@ There are three main issues with the previous models, appart from the necessary 
 
 We will present here two models focusing on tackling mainly the first two issues previously presented. Those rely on a specific musical property of division : in symbolic notations of music, every single event can be comprehended as a mutliple of a certain unit called a @tatum, usually expressed in beat unit. Therefore, the real events of a performance, or rather their duration, can be interpreted as multiple of this tatum. However, considering a non-constant tempo, the real value (i.e., real duration in seconds) of this tatum may evolve through time, whereas the symbolic value remains constant anyway. Actually, detecting the tatum is equivalent to transcript the performance to sheet music, which a rather more complicated task than tempo estimation. For instance, there are several ways to write down sheet musics that are undistinguishable when performed. We call this ambiguity _tempo octaves_ (cf @ann1).
 
-We considered here two quantization methods extracted from litterature : @murphy_quantization_2011 and @romero-garcia_model_2022. Both of these papers present a theory of approximate division, that is a way to find a rationnal number, interpreted as the ratio of two symbolic events expressed in arbitrary unit (for instance in tatum) from the real events durations in seconds. Such a link is equivalent to defining a tempo with the formalism presented in III. Although #cite(<murphy_quantization_2011>, form: "normal") provides an algorithm to find candidate rationnals, they do not include a way to compare those candidates, thus leaving no choice but an exhaustive approach (top-down in the paper). With another formalism, #cite(<romero-garcia_model_2022>) define a graph, restrained only to consistent values of tatum. We choose to adapt the latter, although their presentation is clearly user-oriented rather than automatic, since the introduced graph allows to mathematically (and therefore automatically) define a "good" and a "best" choice among all possible found tatum values.
+We considered here two quantization methods extracted from litterature : @murphy_quantization_2011 and @romero-garcia_model_2022. Both of these papers present a theory of approximate division, that is a way to find a rational number, interpreted as the ratio of two symbolic events expressed in arbitrary unit (for instance in tatum) from the real events durations in seconds. Such a link is equivalent to defining a tempo with the formalism presented in III. Although #cite(<murphy_quantization_2011>, form: "normal") provides an algorithm to find candidate rationals, they do not include a way to compare those candidates, thus leaving no choice but an exhaustive approach (top-down in the paper). With another formalism, #cite(<romero-garcia_model_2022>) define a graph, restrained only to consistent values of tatum. We choose to adapt the latter, although their presentation is clearly user-oriented rather than automatic, since the introduced graph allows to mathematically (and therefore automatically) define a "good" and a "best" choice among all possible found tatum values.
 
 == Introduction of an estimator based approach <estimator_intro>
 
 Given a sequence $(u_n)_(n in NN)$, we now introduce the notation $(Delta u_n)_(n in NN) := (u_(n+1) - u_n)_(n in NN)$ for the next sections.\
 
 The reason why the previous models have to converge is because they both try to find an exact value of tempo, and therefore sudden and huge tempo changes will lead to a uncertain period for the resulting tempo estimation, that is in this way the exact same problem as tempo initialization. When doing tempo estimation, we are in fact much more interested in a local tempo variation, relative to the previous estimation, rather than an absolute value, especially on a local time scale (where we can often assume tempo to be almost constant). Using the formalism presented in III, we first present the following result since $T_n^* > 0$ :\
-$T^*_(n+1) = T_n^* (T^*_(n+1)) / T^*_n = T_n^* (Delta t_n) / (Delta t_(n+1)) (Delta b_(n+1)) / (Delta b_n) = T_n^* (Delta t_n) / (Delta t_(n+1)) times (T_(n+1)^* Delta t_(n+1)) / (T_(n)^* Delta t_(n))$\
+$T^*_(n+1) = T_n^* (T^*_(n+1)) / T^*_n = T_n^* (Delta t_n) / (Delta t_(n+1)) (Delta b_(n+1)) / (Delta b_n)$\
 
 Let $T_n$ be an estimation of $T_n^*$ by a certain given model and $alpha_n = T_n / T_n^*$. We obtain :\
 $alpha_n T_(n+1)^* = underbrace(alpha_n T^*_n, T_n) (Delta t_n) / (Delta t_(n+1)) times (Delta b_(n+1)) / (Delta b_n)$\
 
-In the above formula, the only value to actually estimate is therefore $(b_(n+2) - b_(n+1)) / (b_(n+1) - b_n)$, where both the numerator and denumerator are translation permissive (i.e., we can afford a locally constant shift in both of our estimation), hence the resulting value is invariant by translation, or constant multiplication of our estimation. Furthermore, the value to be estimated only deals with symbolic units, meaning that we can use musical properties to find a consistent result. As a result, we can obtain a tempo estimation with the same multiplicative shift as the previous estimation $T_n$, thus, by using the formula recursively, we obtain a model that can track tempo variations over time without any need of convergence, and that is robust to tempo initialization, while using only local methods (in other words, the resulting model is @online). As noticed in the beginning of this section, symbolic value have some bindings that actually help to determine their values. Moreover, we find : $(Delta b_(n+1)) / (Delta b_n) = (T_(n+1)^* Delta t_(n+1)) / (T_(n)^* Delta t_(n)) = (1/alpha_n T_(n+1)) / (1/alpha_n T_n) times (Delta t_(n+1)) / (Delta t_(n))$,\
+In the above formula, the only value to actually estimate is therefore $(b_(n+2) - b_(n+1)) / (b_(n+1) - b_n)$, where both the numerator and denumerator are translation permissive (i.e., we can afford a locally constant shift in both of our estimation), hence the resulting value is invariant by translation, or constant multiplication of our estimation. Furthermore, the value to be estimated only deals with symbolic units, meaning that we can use musical properties to find a consistent result. As a result, we can obtain a tempo estimation with the same multiplicative shift as the previous estimation $T_n$, thus, by using the formula recursively, we obtain a model that can track tempo variations over time without any need of convergence, and that is robust to tempo initialization, while using only local methods (in other words, the resulting model is @online). As noticed in the beginning of this section, symbolic value have some bindings that actually help to determine their values.\
+
+The point of this approach is to keep a constant factor between $(T_n)$ and $(T_n^*)$ in order to prevent the need for any convergence time. We will now define $T_(n+1) = alpha_n T^*_(n+1)$.\
+We then find : $(Delta b_(n+1)) / (Delta b_n) = (T_(n+1)^* Delta t_(n+1)) / (T_(n)^* Delta t_(n)) = (1/alpha_(n) T_(n+1)) / (1/alpha_n T_n) times (Delta t_(n+1)) / (Delta t_(n))$,\
 hence $(Delta b_(n+1)) / (Delta b_n) = T_(n+1) / T_n times (Delta t_(n+1)) / (Delta t_(n))$.\
 Let us then write the actual formula of the model :\
-#nb_eq($T_(n+1) / T_n = (Delta t_n) / (Delta t_(n+1)) underbrace(E(T_(n+1) / T_n times (Delta t_(n+1)) / (Delta t_(n))), display((Delta b_(n+1)) / (Delta b_n)))$) <estimator>
+#nb_eq($T_(n+1) / T_n = T^*_(n+1) / T^*_n = (Delta t_n) / (Delta t_(n+1)) underbrace(E(T_(n+1) / T_n times (Delta t_(n+1)) / (Delta t_(n))), display((Delta b_(n+1)) / (Delta b_n)))$) <estimator>
 where $E$ is a function-like object (closer to a _object_ in computer science than an actual mathematical function), designated by _estimator_. This function is supposed to act, on a theorical ground, as an oracle that returns the correct value of the symbolic $(Delta b_(n+1)) / (Delta b_n)$ from the given real values indicated in @estimator, therefore supposed to rarely match the theorical values.\
 
 Given an estimator $E$, the tempo value defined as $T_(n+1)$, computed from both $T_n$ and local data, is obtained _via_ the following equation, where $x$ represents $T_(n+1) / T_n$ in @estimator : \
-#nb_eq($T_(n+1) = T_n argmin_(x in [2/3 T_n, 4/3 T_n]) d(x, (Delta t_n) / (Delta t_(n+1)) E(x (Delta t_(n+1)) / (Delta t_(n)))) $) <estimatorf>
-where $d : a, b |-> k_*|log(a/b)|, k_* in RR_+^*,$ is a logarithmic distance, choosen since an absolute distance would have favor small values by triangle inequality in the hereunder process.
+#nb_eq($T_(n+1) = T_n argmin_(x in [sqrt(2)/2 T_n, sqrt(2) T_n]) d(x, (Delta t_n) / (Delta t_(n+1)) E(x (Delta t_(n+1)) / (Delta t_(n)))) $) <estimatorf>
+where $d : a, b |-> k_*|log(a/b)|, k_* in RR_+^*,$ is a logarithmic distance, choosen since an absolute distance would have favor small values by triangle inequality in the following process.
 
-In the implementation presented here, the estimator role is more to quantify the ratio in order to output a musically relevant value. In our test, we limited these quantification to accept only regular division (i.e., powers of 2). Furthermore, the numerical resolution for the previous equation was done by a logarithmically evenly spaced search and favor $x$ values closer to 1 (i.e., $T_(n+1)$ closer to $T_n$) in case of distance equality.
+In the implementation presented here, the estimator role is more to quantify the ratio in order to output a musically relevant value. In our test, we limited these quantifications to accept only regular division (i.e., powers of 2). Furthermore, the numerical resolution for the previous equation was done by a logarithmically evenly spaced search and favor $x$ values closer to 1 (i.e., $T_(n+1)$ closer to $T_n$) in case of distance equality.
 
 Such a research allows for a musically explainable result : the current estimation is the nearest most probable tempo, and both halving and doubling the previous tempo is considered as improbable, and as further going from the initial tempo. @ann2 gives further explanation about @estimatorf.
 
@@ -298,7 +301,7 @@ From there, we can define $sigma_D : a |->  1/a epsilon_D (a)$, the _normalized 
 #figure(
   image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%),
   caption: [
-    All possible tempo curves for a performance of Piano Sonata No. 11 in A Major (K. 331: III), W.A Mozart.\ The tempo scale is linear between ♩ = 40 (bottom) and ♩ = 240 (top)
+    All potentials tempo curves found by a quantified approach for a performance of Piano Sonata No. 11 in A Major (K. 331: III), W.A Mozart. The tempo scale is linear between ♩ = 40 (bottom) and ♩ = 240 (top)
   ],
 )
 
@@ -350,7 +353,7 @@ $integral_(t_0)^(t_(n)) T(t) dif t &= sum_(i = 0)^(n-1) integral_(t_i)^(t_(i+1))
 &= b_n - b_0$\
 We thus obtain the two implications, hence the equivalence.
 
-== The tempo octave problem
+== The tempo octave problem <tempo_oct>
 
 When estimating tempo, or transcribing a performance, there always exist several equivalent possibilities. For instance, given a "correct" transcription $(b_n)$ of a performance $(t_n)$, one can choose to define its own transcription as $t = (b_n / 2)_(n in NN)$.\
 Then, the canonical tempo according to $t$, called $(T_1^*)$, and the one according to $(b_n)$, called $(T_2^*)$ verify :\
@@ -379,20 +382,29 @@ In terms of tempo, halving and doubling are considered as far as each other from
 ]) <ann1>
 
 #appendix([Estimator Model], [
-  - d est une distance
 
-  - argmin : d est continue (distance), donc bornée et atteint ses bornes sur l'intervalle
+== Formal explanations and proofs
+First $d$ is indeed a mathematical distance : let $a, b in (R^*_+)^2, d(a, b) = d(b, a)$ and $d(a, b) = 0 <=> abs(log(a/b)) = 0 <=> a = b$. Finally, let $c in R^*_+, d(a, c) = k_* abs(log(a/c)) = k_* abs(log(a/b times b/c)) = k_* abs(log(a / b) + log(b / c)) <= d(a, b) + d(b, c)$.\
+\
+Then, @estimatorf presents an $argmin$, that makes sense when $E$ is a increasing right-continuous function-like object, even though its actual expression may change after each computed value of $T_(n+1)$. In fact, $E$ can only output a countable set of values, hence $E$ is piecewise constant under those hypothesis.\ \
+Finally, one can notice that the value of $k_* in R^*_+$ does not affect the result of the process.
 
-  Remarque sur la distance log (pas d'importance de $k_*$).
+==  About the range $[sqrt(2)/2 T_n, sqrt(2) T_n]$
 
-  Pourquoi 2/3 et 4/3 :
-  - candidat unique pour chaque changement de tempo : résistant aux octaves
-  - easier to search ($|2/3 - 1| = |4/3 - 1|$) : solution of $2x - 1 = 1 - x <=> 3x = 2$ : on veut un tempo unique, DONC (à montrer éventuellement) entre $x$ et $2x$, et on prend $x$ "centré" en $1$.
+In order to resist to the tempo octave problem discussed in @ann1, we choose here to consider a unique candidate within a range $[x, 2x] subset [1/2, 2]$, for a given $x in R^*_+$. Then, we want this range to be centered around $1$, since its values corresponds to tempo variation, and our system should not favor increasing nor decreasing the tempo _a priori_. For this musical reason, we then take $x$ as solution of : $norm(x - 1) = norm(2x - 1)$ that implies $1 - x = 2x - 1$, i.e., $x = 2/3$ with the absolute value distance.\
+With a logarithmic distance, the same reasoning would give : $log(1/x) = log(2x) <=> -log(x) = log(2) + log(x) <=> log(x^2) = -log(2) <=> x^2 = 1/2 <=> x = sqrt(2) / 2$ since $x > 0$.\ \
+Then, when considering the tempo distance between $T_(n+1)$ and $T_n$, we find : #nb_eq($d(T_(n+1), T_n) = k_* abs(log(y)) = d(1, y)$)
+where $y = limits(argmin)_(x' in [x, 2x]) d(x', (Delta t_n) / (Delta t_(n+1)) E(x' (Delta t_(n+1)) / (Delta t_(n))))$.\
+Therefore, since we want the extreme possible values of our range to imply equal distance between $T_n$ and $T_(n+1)$, we choose the logarithmic distance, and hence $x = sqrt(2) / 2$.
 
-  - si l'estimateur est l'identité : par hypothèse d'oracle, le tempo est constant, et joué parfaitement (i.e., fichier midi), et le résultat est le bon
+== About the estimator $E$
 
-  - l'estimateur n'est pas une fonction : l'output à un instant donné peut dépendre des outputs précédents (cas extrême : transcription en temps réel) : très bonne courbe, mais estimateur très complexe, or le problème ici est justement relaxé : ajouter un exemple de fausse transcription et de correcte avec les courbes de tempo correspondantes.
+One can notice that $E = id$ implies, by the hypothesis that $E$ acts as an oracle, that the theorical and actual values are the same, or that the performance is a perfect interpretation of the piece. Since real players do not make such performance, we can expect a relevant estimator to act rather differently than the identity function.
 
+Moreover, $E$ is not a function : its expression only has to be fixed when calculating the numerical resolution for the $argmin$. Hence, an given output can depends on several previous outputs. In an extreme case, $E$ can even be a transcripting system. However, in our problem of tempo estimation, we do not have as much constraints as in transcription.\ \
+PUT HERE EXEMPLE OF FALSE TRANSCRIPTIONS AND CORRESPONDING TEMPO CURVES
+
+== Measure of a spectrum $S$
 The C++ code for the measure of $S, Delta$ is presented hereafter :
 
 ```cpp
@@ -655,23 +667,23 @@ On en déduit la correction de @algonzalo.
 
       (key:"tempo",
       short: "tempo",
-      desc:[\ Formally defined in #link(<tempo_definition>, [Section III]) by : $T_n^"*" = (b_(n+1) - b_n) / (t_(n+1) - t_n)$, tempo is a measure of the immediate speed of a performance, usually written on the score. It can be seen as a ratio between the symbolic speed indicated by the score, and the actual speed of a performance. Tempo is often expressed in @beat per minute, or bpm],
+      desc:[Formally defined in #link(<tempo_definition>, [Section III]) by : $T_n^"*" = (b_(n+1) - b_n) / (t_(n+1) - t_n)$, tempo is a measure of the immediate speed of a performance, usually written on the score. It can be seen as a ratio between the symbolic speed indicated by the score, and the actual speed of a performance. Tempo is often expressed in @beat per minute, or bpm],
       group:"Definitions"),
 
       (key:"beat", short:"beat",
-      desc:[\ Unité de temps d'une partition, le beat est défini par une signature temps, ou division temporelle. Bien que sa valeur ne soit _a priori_ pas fixe d'une partition à une autre, ni même sur une même partition, la notion de beat est en général l'unité la plus pratique quant à la description d'un passage rythmique, lorsque la signature temps est adéquatement définie.],
+      desc:[Symbolic time unit of a score, its value is defined by a time signature. Although its value can change within a score, or through various transcription of a same piece, this notion is usually the most convenient way to describe a rythmic sequence of events.],
       group:"Definitions"),
       (
         key: "tatum",
         short: "tatum",
         group:"Definitions",
-        desc:[Résolution minimal d'une unité musicale, exprimé en beat. Bien que de nombreuses valeurs soit possible, la définition formelle d'un tatum serait la suivante : $sup {r | forall n in NN, exists k in NN : b_n = k r, r in RR_+^*}$. Pour des raisons pratiques, il arrive que le tatum soit un élément plus petit que la définition donnée, en particulier si cet élément est plus facilement expressible dans une partition, ou a plus de sens d'un point de vue musical. On notera dans la définition de l'ensemble donnée, k n'a pas d'unité, ce qui montre clairement que le tatum s'exprime en beat comme dit précédemment.]
+        desc:[Minimal resolution of a musical unit, expressed in beats. Although several values are possible, a tatum is usually indicates the following value for a given score $(b_n)$ : $sup {r | forall n in NN, exists k in NN : b_n = k r, r in RR_+^*}$. For practical reasons, a tatum may be defined as smaller value than the one previously given, especially if this value is easier to express within the current time signature, or makes more sense musically..]
       ),
 
       (
         key:"timesig",
         short:"time signature",
-        desc:"",
+        desc:"The time signature is a convention in Western music notation that specifies how many note values of a particular type are contained in each measure. It is composed of two integers : the amount of beat contained within a measure, and the value of these beats, indicated as division of a whole note, i.e., four quarter notes.",
         group:"Definitions"
       ),
 
@@ -692,7 +704,7 @@ On en déduit la correction de @algonzalo.
       (
         key:"chord",
         short:"chord",
-        desc:"A chord is by definition the simultaneous production of at least three musical events with different pitches",
+        desc:[A chord is by definition the simultaneous production of at least three musical events with different pitches],
         group:"Definitions"
       ),
 
@@ -720,7 +732,7 @@ On en déduit la correction de @algonzalo.
       (
         key:"articulation",
         short:"articulation",
-        desc:[describes how a specific note is played by the performer. For instance, _staccato_ means the note shall not be maintained, and instead last only a few musical units, depending on the context. On the other hand, a fermata (_point d'orgue_ in French) indicates that the note should stay longer than indicated, to the performer's discretion.],
+        desc:[Describes how a specific note is played by the performer. For instance, _staccato_ means the note shall not be maintained, and instead last only a few musical units, depending on the context. On the other hand, a fermata (_point d'orgue_ in French) indicates that the note should stay longer than indicated, to the performer's discretion.],
         group:"Definitions"
       ),
 
@@ -734,7 +746,7 @@ On en déduit la correction de @algonzalo.
       (
         key:"measure",
         short:"measure",
-        desc:[Une mesure est une unité de temps musicale, contenant un certain nombre (entier) de beat. Ce nombre est indiqué par la @timesig],
+        desc:[A measure is a symbolic time unit corresponding to a fixed amount (integer) of beats. This value is indicated by the @timesig],
         group:"Definitions"
       ),
 
@@ -748,7 +760,7 @@ On en déduit la correction de @algonzalo.
       (
         key:"online",
         short:"online",
-        desc:[Définition d'une méthode / d'un algo online],
+        desc:[In computer science, an online algorithm is one that can process its input piece-by-piece in a serial fashion, i.e., in the order that the input is fed to the algorithm, without having the entire input available from the start.],
         group:"Definitions"
       ),
     )
