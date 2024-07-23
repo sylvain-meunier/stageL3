@@ -23,6 +23,9 @@ class Large():
         self.eta_p = eta_p
         self.phi = 0
         self.dt = 1
+    
+    def set_tempo(self, t):
+        self.period = 60 / t
 
     def period_to_tempo(self, period):
         return 60 / (period) # bpm
