@@ -21,7 +21,10 @@ def crush_tempo(performance, canonical_tempo, flattened_tempo, constant_tempo=No
     if mode == "d" or mode == "default" :
         symbolic_shifts *= p
     elif mode == "c" or mode == "cut" :
-        symbolic_shifts = min(p, symbolic_shifts)
+        for n in range(len(performance) - 1):
+            duration = performance[n+1] - performance[n]
+            tmp = symbolic_shifts[n] / (duration * canonical_tempo[n])
+            symbolic_shifts[n] = min(p, tmp) * (duration * canonical_tempo[n])
     else:
         max_shift = np.max(symbolic_shifts)
         symbolic_shifts *= p / max_shift
