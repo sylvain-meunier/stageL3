@@ -3,7 +3,7 @@
 #import "@preview/lemmify:0.1.5": *
 #import "@preview/glossarium:0.4.1": make-glossary, print-glossary, gls, glspl
 #show: make-glossary
-#show link: set text(fill: blue.darken(60%))
+#show link: set text(fill: blue.darken(30%))
 #set page(numbering: "1")
 #show: ieee.with(
   title: [Numerical sheet music analysis,\ L3 intership (CNAM / INRIA)\ 27/05/24 - 02/08/24],
@@ -64,8 +64,8 @@
 
 We present here some results regarding the analysis of tempo curve of musical performances, with score-based and scoreless approaches extending previously existing models.
 
-The @mir community focuses on three ways to compute musical information. The first one is raw audio, either recorded or generated, encoded in .wav or .mp3 files. The computation is based on a physical understanding of signals, using audio frames and spectrum, and represents the most common and accessible type of data. The second is a more musically-informed format, that indicates mainly two parameters : pitch (i.e., the note that the listener hear) and duration, encoded within a .mid (or MIDI) file. Such a file can be displayed as a piano roll, that is a graph which x-axis is time and y-axis is pitch (hence, the y-axis is discrete).
-The last way to encode musical information is the computed counterpart of sheet music. A sheet music is a way to write down a musical score, that is usually computed as a .music_xml file, mainly for display purposes. It comes with a *symbolic* and abstract notation for time, that only describes the length of events in relation to a specific abstract unit, called a @beat, and the pitch of each event. This kind of data is actually the least common and accessible.\
+The Music Information Retrieval (MIR) community focuses on three ways to compute musical information. The first one is raw audio, either recorded or generated, encoded using WAVE or MP3 format. The computation is based on a physical understanding of signals, using audio frames and spectrum, and represents the most common and accessible type of data. The second is a more musically-informed format, that indicates mainly two parameters : pitch (i.e., the note that the listener hear) and duration, encoded within a MIDI file. Such a file can be displayed as a piano roll, i.e., a graph whose x-axis is time and y-axis is pitch (hence, the y-axis is discrete).
+The last way to encode musical information is the computed counterpart of sheet music. A sheet music is a way to write down a musical score, that is usually computed as a MusicXML file, mainly for display purposes. It comes with a *symbolic* and abstract notation for time, that only describes the length of events in relation to a specific abstract unit, called a @beat, and the pitch of each event. This kind of data is actually the least common and accessible.\
 
 To actually play a sheet music, one needs a given @tempo, usually indicated as the amount of beat per minute (BPM). Therefore, the notion of tempo allows to translate symbolic notation (expressed in musical unit, e.g., beats) to real time events (expressed in real time unit, e.g., seconds). We will discuss later on a formal definition of tempo.
 However, tempo itself is insufficient to describe an actual performance of a sheet music, i.e., the sequence of real time events. Indeed, @peter2023sounding present four parameters, among which tempo and @articulation appear the most salient in contrast with @velocity and timing. The latter represents the delay between the theorical real time onset according to the current tempo, and the actual onset heared in the performance. Even though such a delay is inevitable for neurological and biological reasons, those timings are usually overemphasized and understood as part of the musical expressivity of the performance.\
@@ -80,7 +80,7 @@ Tempo and related works actually hold a prominent place in litterature. Direct t
 
 Since tempo needs a symbolic representation to be meaningful, one can consider transcription as a tempo-related work. We will keep this discussion for @quanti and @conclusion.\
 
-However, note-alignement, that is matching each note of a performance with those indicated by a given score is a very useful preprocessing technique, especially for direct tempo estimation and further analysis, such as #cite(<kosta_mazurkabl:_2018>, form:"normal") #cite(<hentschel_annotated_2021>, form:"normal") #cite(<hu_batik-plays-mozart_2023>, form:"normal"). Two main methods are to be found in litterature : a dynamic programming algorithm, equivalent to finding a shortest path (@muller_memory-restricted_nodate), that can works on raw audio (.wav files) ; and a Hidden Markov Model (@nakamura_performance_2017) that needs more formatted data, such as MIDI files.
+However, note-alignement, that is matching each note of a performance with those indicated by a given score is a very useful preprocessing technique, especially for direct tempo estimation and further analysis, such as #cite(<kosta_mazurkabl:_2018>, form:"normal") #cite(<hentschel_annotated_2021>, form:"normal") #cite(<hu_batik-plays-mozart_2023>, form:"normal"). Two main methods are to be found in litterature : a dynamic programming algorithm, equivalent to finding a shortest path (@muller_memory-restricted_nodate), that can works on raw audio (WAVE files) ; and a Hidden Markov Model (@nakamura_performance_2017) that needs more formatted data, such as MIDI files.
 
 In this report, we will present the following contributions :
 - a justified proposition for a formal definition of tempo based on @raphael_probabilistic_2001, @kosta_mazurkabl:_2018 and @hu_batik-plays-mozart_2023 (#link(<formal_consider>)[III.A]) ; and some immediate consequences (#link(<naive_use>)[III.B])
@@ -97,7 +97,7 @@ In this report, we will present the following contributions :
 
 Since we chose to focus on MIDI files, we will represent a performance as a strictly increasing sequence of events $(t_n)_(n in NN)$, each element of whose indicates the onset of the corresponding performance event. Such a definition is very close to an actual MIDI representation.\
 
-For practical considerations, we will stack together all events whose distance in time is smaller than $epsilon = 20 "ms"$. This order of magnitude, calculated by @nakamura_outer-product_2014 represents the limits of human ability to tell two rythmic events appart, and is widely used within the field #cite(<shibata_non-local_2021>, form:"normal") 
+For practical considerations, we will stack together all events whose distance in time is smaller than $epsilon = 20 "ms"$. This order of magnitude, calculated by @nakamura_outer-product_2014 represents the limits of human ability to tell two rythmic events apart, and is widely used within the field #cite(<shibata_non-local_2021>, form:"normal") 
   #cite(<kosta_mazurkabl:_2018>, form:"normal")
   #cite(<hentschel_annotated_2021>, form:"normal")
   #cite(<hu_batik-plays-mozart_2023>, form:"normal")
@@ -117,7 +117,7 @@ The reader can verify that this function is a formal tempo according to the prev
 
 Even though there is a general consensus in the field as for the interest and informal definition of tempo, several formal definitions coexist within litterature : @shibata_non-local_2021 and @nakamura_stochastic_2015 take $1 / T^*$ as definition ; @raphael_probabilistic_2001, @kosta_mazurkabl:_2018 et @hu_batik-plays-mozart_2023 choose similar definitions than the one given here (approximated at the scale of a @measure or a section for instance).\
 
-$T^*$ has the advantage to coincide with the tempo actually indicated on traditional sheet music (and therefore on .music_xml format), hence allowing a simpler and more direct interpretation of results.
+$T^*$ has the advantage to coincide with the tempo actually indicated on traditional sheet music (and therefore on MusicXML format), hence allowing a simpler and more direct interpretation of results.
 
 == Naive use of formalism <naive_use>
 
@@ -197,7 +197,7 @@ One can notice that the phase is actually always used modulo 1 in @large_dynamic
 == Motivations
 
 
-There are three main issues with the previous models, appart from the necessary knowledge of the sheet music, that are : salient sensibility to tempo initialization (cf. @init_curve), unstability that requires some time to (possibly) converge (cf. @large_curve and @init_curve), and difficulty to accurately estimate relevant values of the constant internal parameters. According to our implementation, @large_dynamics_1999 is a particularly chaotic model regarding the latter.\
+There are three main issues with the previous models, apart from the necessary knowledge of the sheet music, that are : salient sensibility to tempo initialization (cf. @init_curve), unstability that requires some time to (possibly) converge (cf. @large_curve and @init_curve), and difficulty to accurately estimate relevant values of the constant internal parameters. According to our implementation, @large_dynamics_1999 is a particularly chaotic model regarding the latter.\
 
 We will present here two models focusing on tackling mainly the first two issues previously presented. Those rely on a specific musical property of division : in symbolic notations of music, every single event can be comprehended as a mutliple of a certain unit called a @tatum, usually expressed in beat unit. Therefore, the real events of a performance, or rather their duration, can be interpreted as multiple of this tatum. However, considering a non-constant tempo, the real value (i.e., real duration in seconds) of this tatum may evolve through time, whereas the symbolic value remains constant anyway. Actually, detecting the tatum is equivalent to transcript the performance to sheet music, which a rather more complicated task than tempo estimation. For instance, there are several ways to write down sheet musics that are undistinguishable when performed. We call this ambiguity _tempo octaves_ (cf @ann1).
 
@@ -269,7 +269,7 @@ pseudocode-list(booktabs: true, hooks: .5em, title: [FindLocalMinima($D != empty
   + *return* $"localMinima"$
 ]) <algonzalo>
 
-@romero-garcia_model_2022 then defined $G = (V, E)$ a graph which vertices are the local minima of $epsilon_D$ with $D$ a sliding window, or _frame_, on a given performance, and which edges are so that they can guarantee a _consistency property_, explained hereafter.
+@romero-garcia_model_2022 then defined $G = (V, E)$ a graph whose vertices are the local minima of $epsilon_D$ with $D$ a sliding window, or _frame_, on a given performance, and whose edges are so that they can guarantee a _consistency property_, explained hereafter.
 
 The _consistency property_ for two tatums $a_1, a_2$ specifies that, if $F_sect$ is the set of all values in common between two successive frame, for all $d in F_sect$, $d$ is quantified the same way according to the tatum $a_1$ and $a_2$, i.e., the symbolic value of $d$ is the same when considering either $a_1$ of $a_2$ as the duration of the same given tatum at some tempo (respectively $1/a_1$ and $1/a_2$ as shown in @quanti_revised). From these definitions, we can now define a _tempo curve_ as a path in $G$. In fact, #cite(<romero-garcia_model_2022>, form: "normal") call such a path a _transcription_ rather than a tempo curve, but since an exact tempo curve would be $(T_n^*)$, those two problems are actually equivalent.
 
@@ -395,14 +395,29 @@ In order to resist to the tempo octave problem discussed in @ann1, we choose her
 With a logarithmic distance, the same reasoning would give : $log(1/x) = log(2x) <=> -log(x) = log(2) + log(x) <=> log(x^2) = -log(2) <=> x^2 = 1/2 <=> x = sqrt(2) / 2$ since $x > 0$.\ \
 Then, when considering the tempo distance between $T_(n+1)$ and $T_n$, we find : #nb_eq($d(T_(n+1), T_n) = k_* abs(log(y)) = d(1, y)$)
 where $y = limits(argmin)_(x' in [x, 2x]) d(x', (Delta t_n) / (Delta t_(n+1)) E(x' (Delta t_(n+1)) / (Delta t_(n))))$.\
-Therefore, since we want the extreme possible values of our range to imply equal distance between $T_n$ and $T_(n+1)$, we choose the logarithmic distance, and hence $x = sqrt(2) / 2$.
+Therefore, since we want the extreme possible values of our range to imply an equal distance between $T_n$ and $T_(n+1)$, we choose the logarithmic distance, and hence $x = sqrt(2) / 2$, so that $d(1, x) = d(1, 2x)$.
 
 == About the estimator $E$
 
 One can notice that $E = id$ implies, by the hypothesis that $E$ acts as an oracle, that the theorical and actual values are the same, or that the performance is a perfect interpretation of the piece. Since real players do not make such performance, we can expect a relevant estimator to act rather differently than the identity function.
 
-Moreover, $E$ is not a function : its expression only has to be fixed when calculating the numerical resolution for the $argmin$. Hence, an given output can depends on several previous outputs. In an extreme case, $E$ can even be a transcripting system. However, in our problem of tempo estimation, we do not have as much constraints as in transcription.\ \
-PUT HERE EXEMPLE OF FALSE TRANSCRIPTIONS AND CORRESPONDING TEMPO CURVES
+Moreover, $E$ is not a function : its expression only has to be fixed when computing the numerical resolution for the $argmin$. Hence, an given output can depends on several previous outputs. In an extreme case, $E$ can even be a transcripting system. However, in our problem of tempo estimation, we do not have as much constraints as in transcription.\
+Indeed, the following figures displays two transcription A and B, the latter being incorrect with regards to usual transcription convention, and their corresponding tempo curves.\
+
+One can notice that these are quite similar, and in fact, a human being could not tell them apart, as shown by @tempo_distance.
+
+#grid(
+  columns: (auto, auto),
+  rows: (auto),
+  figure(image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%), caption: [Transcription A]), figure(image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%), caption: [Tempo curve A])
+)
+#grid(
+  columns: (auto, auto),
+  rows: (auto),
+  figure(image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%), caption: [Transcription B]), figure(image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%), caption: [Tempo curve B])
+) <incorrect_t>
+
+#figure(image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%), caption: [Tempo distance between the two previous curves. Being able to differentiate them would imply to tell apart two rythmic events within ... s, which is suppose impossible for a humain being according to the value of $epsilon$ defined in @formal_consider]) <tempo_distance>
 
 == Measure of a spectrum $S$
 The C++ code for the measure of $S, Delta$ is presented hereafter :
@@ -594,7 +609,7 @@ $x in A &<=> exists (t_1, t_2) in T^2 : t_1 != t_2 and g(t_1/x) = g(t_2/x)\
 &<=> exists (t_1, t_2) in T^2 : t_1 != t_2 and t_1/x = plus.minus t_2 / x mod 1\
 &<=> exists (t_1, t_2) in T^2 : t_1 != t_2 and x = (t_1 minus.plus t_2) / n, n in ZZ^*$\
 Hence $A subset {(t_1 minus.plus t_2) / n, (t_1, t_2) in T^2, n in ZZ^*}$, because $T subset (R^*_+)^(|T|)$.
-Therefore, there is a countable set of closed convex intervals, which union is $R^*_+$ so that on each of these intervals, $epsilon_T$ is equal to $f_t : a |-> a g(t/a)$ for a $t in T$. Let then $t$ be so that for all $x in ]a-delta', a[, epsilon_T (x) = f_t(x)$, where $]a-delta', a[$ is included in one the previous intervals. Since $f_t$ and $epsilon_T$ are both continuous on $[a-delta', a], f_t (a) = epsilon_T (a)$ and therefore, $t in display(argmax_(t' in T)) g(t' / a)$. The previous paragraph showed that $g$ is increasing on a left neighbourhood of $t/a$. Therefore, on a right neighbourhood of $t/a$, $g$ is either increasing or decreasing by its definition.
+Therefore, there is a countable set of closed convex intervals, whose union is $R^*_+$ so that on each of these intervals, $epsilon_T$ is equal to $f_t : a |-> a g(t/a)$ for a $t in T$. Let then $t$ be so that for all $x in ]a-delta', a[, epsilon_T (x) = f_t(x)$, where $]a-delta', a[$ is included in one the previous intervals. Since $f_t$ and $epsilon_T$ are both continuous on $[a-delta', a], f_t (a) = epsilon_T (a)$ and therefore, $t in display(argmax_(t' in T)) g(t' / a)$. The previous paragraph showed that $g$ is increasing on a left neighbourhood of $t/a$. Therefore, on a right neighbourhood of $t/a$, $g$ is either increasing or decreasing by its definition.
 
 - if $g$ is increasing on this neighbourhood, called $N(t/a)^+$ in the following, the previous expression of $g$ remains valid, i.e., $forall x in N(t/a)^+, g(x) = x - floor(x)$. Moreover, $x |-> floor(x)$ is right-continuous, hence by restricting $N(t/a)^+$, we can assure for all $x in N(t/a)^+,floor(x) = floor(t/a)$. Let then $y = a - t/x$ so that $x = t/(a - y)$, we then have $epsilon_T (a - y) = t - (a - y) floor(t/a) <= epsilon_T (a) = t - a floor(t/a)$ because $a$ is a local maxima of $epsilon_T$ and $a - y$ is within a (left) neighbourhood of $a$, even if it means restricting $delta'$ or $N(t/a)^+$. Hence, $t - floor(t/a) a >= t - (a-y)floor(t/a)$ i.e., $a floor(t/a) <= (a - y) floor(t/a) <=> 0 <= -y floor(t/a)$ i.e., $floor(t/a) <= 0$ i.e., $floor(t/a) = 0$, since $y, t "and" a$ are all positive values. Then, $a > t$ and therefore $epsilon_T (a - y) = t = epsilon_T (a)$ for $floor(t/a) = 0$. This interval where $epsilon_T$ is constant is then either going on infinitely on the right of $a$, or else $epsilon_T$ will reach a value greater than $epsilon_T (a) = t$, since $epsilon_T$ can then be rewritten as $x |-> max(display(max_(t' in T without {t}) x g(t'/x) ), epsilon_T (a))$ on $[a, +infinity[$. Hence $a$ is a local minima on the right, and since $epsilon_T$ is constant on a left neighbourhood of $a$, $a$ is also a local minima on the left. Finally, $a$ is a local minima, which is absurd by definition.
 
@@ -746,14 +761,14 @@ On en déduit la correction de @algonzalo.
       (
         key:"measure",
         short:"measure",
-        desc:[A measure is a symbolic time unit corresponding to a fixed amount (integer) of beats. This value is indicated by the @timesig],
+        desc:[A measure is a symbolic time unit corresponding to a fixed amount (integer) of beats. This value is indicated by the @timesig.],
         group:"Definitions"
       ),
 
       (
         key:"triplet",
         short:"triplet",
-        desc:[A triplet is a musical symbol indicating to play a third of the indicated duration],
+        desc:[A triplet is a musical symbol indicating to play a third of the indicated duration.],
         group:"Definitions"
       ),
 
