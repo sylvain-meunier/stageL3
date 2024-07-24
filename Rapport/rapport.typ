@@ -6,7 +6,10 @@
 #show link: set text(fill: blue.darken(30%))
 #set page(numbering: "1")
 #show: ieee.with(
-  title: [Numerical sheet music analysis,\ L3 intership (CNAM / INRIA)\ 27/05/24 - 02/08/24],
+  title: [Tempo curves estimation, generation and analysis,\ L3 intership (CNAM / INRIA)\ 27/05/24 - 02/08/24],
+  abstract: [
+    Tempo estimation consists in detecting the speed at which a musician plays, or more generally at which a piece of music is played or heard. Since tempo may not be constant at the scale of a piece, even locally, we need some kind of reference to compare to in order to define said speed. Indeed, a note-wise speed would not match the intuitive notion of tempo, based on a regular _pulse_. Such a reference can be found in Western symbolic notations of music, called either _music score_ or _sheet music_, that allows for a definition of tempo as symbolic speed. We present here some results regarding the generation and analysis of local tempo curves of musical performances, involving methods that need to be given some symbolic information, and methods that generate them on the fly.
+  ],
   authors: (
     (
       name: "Sylvain Meunier (intern)",
@@ -17,7 +20,7 @@
       email :"florent.jacquemard@inria.fr",
     ),
   ),
-  index-terms: ("Computer Science", "CS", "MIR", "Music Information Retrieval"),
+  index-terms: ("Music Information Retrieval", "tempo estimation", "quantification", "musical formalism"),
   paper-size:"a4",
 )
 
@@ -62,33 +65,32 @@
 
 = Introduction
 
-We present here some results regarding the analysis of tempo curve of musical performances, with score-based and scoreless approaches extending previously existing models.
+Unlike one may imagine, a performance of a given sheet music does need to contains some errors in order to sound "musical". Otherwise, the result would sound too unhumanize, automatic, i.e., unalive and thus unmusical.
 
-The Music Information Retrieval (MIR) community focuses on three ways to compute musical information. The first one is raw audio, either recorded or generated, encoded using WAVE or MP3 format. The computation is based on a physical understanding of signals, using audio frames and spectrum, and represents the most common and accessible type of data. The second is a more musically-informed format, that indicates mainly two parameters : pitch (i.e., the note that the listener hear) and duration, encoded within a MIDI file. Such a file can be displayed as a piano roll, i.e., a graph whose x-axis is time and y-axis is pitch (hence, the y-axis is discrete).
+The @mir community focuses on three ways to compute musical information. The first one is raw audio, either recorded or generated, encoded using WAVE or MP3 format. The computation is based on a physical understanding of signals, using audio frames and spectrum, and represents the most common and accessible type of data. The second is a more musically-informed format, that indicates mainly two parameters : pitch (i.e., the note that the listener hear) and duration, encoded within a MIDI file. Such a file can be displayed as a piano roll, i.e., a graph whose x-axis is time and y-axis is pitch (hence, the y-axis is discrete).
 The last way to encode musical information is the computed counterpart of sheet music. A sheet music is a way to write down a musical score, that is usually computed as a MusicXML file, mainly for display purposes. It comes with a *symbolic* and abstract notation for time, that only describes the length of events in relation to a specific abstract unit, called a @beat, and the pitch of each event. This kind of data is actually the least common and accessible.\
 
-To actually play a sheet music, one needs a given @tempo, usually indicated as the amount of beat per minute (BPM). Therefore, the notion of tempo allows to translate symbolic notation (expressed in musical unit, e.g., beats) to real time events (expressed in real time unit, e.g., seconds). We will discuss later on a formal definition of tempo.
+To actually play a sheet music, one needs a given @tempo, usually indicated as the amount of beat per minute (BPM). Therefore, the notion of tempo allows to translate symbolic notation expressed in #gls("mtu", long:false) to real time events expressed in #gls("rtu", long:false). We will discuss later on a formal definition of tempo.
 However, tempo itself is insufficient to describe an actual performance of a sheet music, i.e., the sequence of real time events. Indeed, @peter2023sounding present four parameters, among which tempo and @articulation appear the most salient in contrast with @velocity and timing. The latter represents the delay between the theorical real time onset according to the current tempo, and the actual onset heared in the performance. Even though such a delay is inevitable for neurological and biological reasons, those timings are usually overemphasized and understood as part of the musical expressivity of the performance.\
 
-In this study, we shall focus mainly on tempo estimation for a given performance recorded as a MIDI file, on both a local and global level.
+In this study, we shall focus mainly on tempo estimation for a given performance recorded as a MIDI file, on both a local and global level. @soa presents an overview of the domain and related problems. We then present the following contributions :
+- a justified proposition for a formal definition of tempo based on #cite(<raphael_probabilistic_2001>, form: "normal"), #cite(<kosta_mazurkabl:_2018>, form: "normal") and #cite(<hu_batik-plays-mozart_2023>, form: "normal") (#link(<formal_consider>)[III.A]) ; and some immediate consequences (#link(<naive_use>)[III.B])
+- a revision of #cite(<large_dynamics_1999>, form: "normal") and #cite(<schulze_keeping_2005>, form: "normal") to fit a score-based approach (#link(<largmodif>)[III.C])
+- a general theorical framework for scoreless tempo estimation with application to #cite(<murphy_quantization_2011>, form: "normal") #cite(<romero-garcia_model_2022>, form: "normal") (#link(<estimator_intro>)[IV.B])
+- an extension of #cite(<romero-garcia_model_2022>, form: "normal"), to fit tempo estimation, and some new theorical results (#link(<quanti>)[IV.D], #link(<quanti_revised>)[IV.E] and @gonzalo_spectre)
+- A method for data augmentation, and results based on #cite(<foscarin_asap:_2020>, form: "normal") and #cite(<peter_automatic_2023>, form: "normal") (@data_gen)
 
-= State of Art
+This report and associated algorithms can be found on #cite(<git>, form: "normal").
+
+= State of Art <soa>
 
 Even though the community studies the four parameters, the hierarchy exposed by #cite(<peter2023sounding>, form:"normal") embodies quite well their relative priority within litterature. @Kosta2016Mapping present results pointing that, although velocities don't help to meaningfully estimate tempo, the latter allows to marginally upgrade velocity-related predictions. Actually, velocity appears to be more of a score parameter rather than a performance one : automatic learning methods trained on performances of a single piece showed much better results when asked to predict velocities employed by another performer on the same piece than when trained on other performances of the same performer.\
 
 Tempo and related works actually hold a prominent place in litterature. Direct tempo estimation was first computed based on probabilistic models (@raphael_probabilistic_2001 @nakamura_stochastic_2015 #cite(<nakamura_outer-product_2014>, form:"normal")), and physical / neurological models (@large_dynamics_1999 @schulze_keeping_2005) ; before the community tried neural network models #cite(<Kosta2016Mapping>, form:"normal") and hybrids approaches (@shibata_non-local_2021). As the majority of previous examples, we shall focus here on mathematically and/or musically explainable methods.\
 
-Since tempo needs a symbolic representation to be meaningful, one can consider transcription as a tempo-related work. We will keep this discussion for @quanti and @conclusion.\
+Since tempo needs a symbolic representation to be meaningful, one can consider @transcription as a tempo-related work. We will keep this discussion for @quanti and @conclusion.\
 
 However, note-alignement, that is matching each note of a performance with those indicated by a given score is a very useful preprocessing technique, especially for direct tempo estimation and further analysis, such as #cite(<kosta_mazurkabl:_2018>, form:"normal") #cite(<hentschel_annotated_2021>, form:"normal") #cite(<hu_batik-plays-mozart_2023>, form:"normal"). Two main methods are to be found in litterature : a dynamic programming algorithm, equivalent to finding a shortest path (@muller_memory-restricted_nodate), that can works on raw audio (WAVE files) ; and a Hidden Markov Model (@nakamura_performance_2017) that needs more formatted data, such as MIDI files.
-
-In this report, we will present the following contributions :
-- a justified proposition for a formal definition of tempo based on @raphael_probabilistic_2001, @kosta_mazurkabl:_2018 and @hu_batik-plays-mozart_2023 (#link(<formal_consider>)[III.A]) ; and some immediate consequences (#link(<naive_use>)[III.B])
-- a revision of @large_dynamics_1999 and @schulze_keeping_2005 to fit a score-based approach (#link(<largmodif>)[III.C])
-- a theorical framework for scoreless tempo estimation (#link(<estimator_intro>)[IV.B])
-- an extension of @romero-garcia_model_2022, to fit tempo estimation, and some new theorical results (#link(<quanti>)[IV.D], #link(<quanti_revised>)[IV.E] and @gonzalo_spectre)
-- generated data based on @foscarin_asap:_2020 and @peter_automatic_2023 (@data_gen)
-
 
 
 = Score-based approaches
@@ -239,7 +241,7 @@ Where $Delta in [0, 1/2]$ embodies the measure accuracy, and $d$ is still a loga
 
 The reader can verify that this measure is invariant with respect to spectrum rotation by any $lambda in R^*_+$ (i.e., $m(S, Delta) = m((tilde(lambda alpha)_n)_(n in [|1, N|]), Delta)$), and does not depend on the normalisation interval (here $[1, 2[$, but actually $[lambda, 2 lambda[$ would work just as well, with a different expression of $d$ on $cal(C)$). Finally, $0 <= m(S, Delta) <= 1$, and $m(S, Delta) = 0 <=> |S| = 0$, $m(S, Delta) = 1$ iff $S$ only contains values within a $2Delta$ range.
 
-This measure allows to quantify the quality of this model, without considering tempo octaves, or equivalently to quantify the quality of the estimator. @ann2 presents the C++ implementation of this measure used to obtain the following figures.
+This measure allows to quantify the quality of this model, without considering tempo octaves, or equivalently to quantify the quality of the estimator. The C++ implementation of the measure used to obtain the following figures if available on #cite(<git>, form: "normal").
 
 résultats sur (n-)Asap selon les périodes, les compositeurs, etc..., éventuellement en annexe ?
 
@@ -407,170 +409,22 @@ Indeed, the following figures displays two transcription A and B, the latter bei
 One can notice that these are quite similar, and in fact, a human being could not tell them apart, as shown by @tempo_distance.
 
 #grid(
+  align: bottom,
   columns: (auto, auto),
   rows: (auto),
-  figure(image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%), caption: [Transcription A]), figure(image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%), caption: [Tempo curve A])
+  figure(image("../Figures/Ugly_castle-Piano-2.png", width: 100%), caption: [Transcription A]), figure(image("../Figures/Ugly_castle-Piano-1.png", width: 100%), caption: [Transcription B])
 )
+
+#figure(image("../Figures/tempo_curves.png", width: 100%), caption: [Tempo curves A & B])
+
 #grid(
+  align: bottom,
   columns: (auto, auto),
   rows: (auto),
-  figure(image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%), caption: [Transcription B]), figure(image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%), caption: [Tempo curve B])
-) <incorrect_t>
+  [#figure(image("../Figures/tempo_distance.png", width: 100%), caption: [Tempo distance (s)]) <tempo_distance>], figure(image("../Figures/tempo_distance2.png", width: 100%), caption: [Tempo distance (log)])
+)
 
-#figure(image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%), caption: [Tempo distance between the two previous curves. Being able to differentiate them would imply to tell apart two rythmic events within ... s, which is suppose impossible for a humain being according to the value of $epsilon$ defined in @formal_consider]) <tempo_distance>
-
-== Measure of a spectrum $S$
-The C++ code for the measure of $S, Delta$ is presented hereafter :
-
-```cpp
-#measure.hpp :
-using couple = std::pair<int, int>;
-
-bool couple_eq(couple c1, couple c2) {
-    auto [a, b] = c1;
-    auto [c, d] = c2;
-    return (a == c) && (b == d);
-}
-
-template <typename T>
-class Circle {
-    std::vector<T> t;
-    std::vector<int> count;
-    double x;
-    int len;
-    couple start;
-
-    public:
-    Circle(std::vector<T> spectre, double x, int i) : t(std::vector<T>()), count(std::vector<int>()), x(x), len(spectre.size()), start(couple(i, 0)) {
-        count.push_back(1);
-        t.push_back(spectre[0]);
-        for (unsigned int ind = 0; ind + 1 < spectre.size(); ind++) {
-            if (spectre[ind] == spectre[ind + 1]) {
-                count[count.size() - 1]++;
-            } else {
-                count.push_back(1);
-                t.push_back(spectre[ind+1U]);
-            }
-        }
-    }
-
-    int size() {
-        return t.size();
-    }
-
-    bool is_start(couple end) {
-        auto [i, k] = start;
-        auto [j, l] = end;
-        return i == j;
-    }
-
-    couple get_start() {
-        return start;
-    }
-
-    double get(couple a) {
-        auto [i, k] = a;
-        return t[i]+ x*k;
-    }
-
-    couple get_next(couple a) {
-        auto [i, k] = a;
-        if (i + 1 == t.size()) {
-            return couple(0, k+1);
-        }
-        return couple(i+1, k);
-    }
-
-    couple get_previous(couple a) {
-        auto [i, k] = a;
-        if (i == 0) {
-            return couple(t.size() - 1, k-1);
-        }
-        return couple(i-1, k);
-    }
-
-    int get_count(couple a) {
-        auto [i, _] = a;
-        return count[i];
-    }
-
-    int get_cardinal(couple a1, couple a2) {
-        auto [i1, k1] = a1;
-        auto [i2, k2] = a2;
-        int s = 0;
-        int delta = i2 - i1 + (k2 - k1) * t.size();
-        int q = delta / t.size();
-
-        for (int i = 0; i < t.size(); i++) {
-            int c = q;
-            if (i1 > i2) {
-                c += (i >= i1 || i <= i2);
-            } else {
-                c += (i >= i1 && i <= i2);
-            }
-            s += count[i] * c;
-        }
-        return s;
-    }
-
-    int length() {
-        return len;
-    }
-};
-
-#measure.cpp :
-double distance(double a, double b, double x) {
-    return fmin(fabs(a - b), x - fabs(a - b));
-}
-
-double get_measure(std::vector<double> spectre, const double delta, const double x, int i) {
-    std::sort(spectre.begin(), spectre.end());
-    Circle<double> c = Circle<double>(spectre, x, i);
-    couple ind_end = c.get_start();
-    couple ind_start = ind_end;
-    double d = c.get(ind_end) - delta;
-    for (int i = 0; i < c.size() - 1; i++) {
-        ind_start = c.get_previous(ind_start);
-        if (distance(c.get(ind_start), d, x) > delta) {
-            ind_start = c.get_next(ind_start);
-            break;
-        }
-    }
-    int p = c.get_cardinal(ind_start, ind_end);
-    int S = p;
-
-    int h = 0;
-    while (h+1 < c.size()) {
-        double d1 = delta - distance(c.get(ind_start), d, x); // Next start index change
-        if (c.get(ind_start) > d) {
-            d1 = -d1 + 2*delta;
-        }
-        double d2 = distance(c.get(c.get_next(ind_end)), d, x) - delta; // Next end index change
-
-        if (d1 <= d2) {
-            p -= c.get_count(ind_start);
-        }
-        if (d2 <= d1) {
-            h++; // A new point enters the delta area
-            p += c.get_count(ind_end);
-            S = fmax(S, p);
-        }
-        d += fmin(d1, d2);
-
-        if (d1 <= d2) {
-            ind_start = c.get_next(ind_start);
-            if (couple_eq(ind_start, ind_end)) {
-                ind_end = ind_start;
-            }
-        }
-
-        if (d2 <= d1) {
-            ind_end = c.get_next(ind_end);
-        }
-    }
-    return (double)S / (double)(c.length());
-}
-```
+Tempo distance between the two previous curves. Being able to differentiate them would imply to tell apart two rythmic events within 4 ms, which is suppose impossible for a humain being according to the value of $epsilon$ defined (and displayed as the top line in @tempo_distance) in @formal_consider.
 ]) <ann2>
 
 #appendix([Quantified Model], [
@@ -634,7 +488,7 @@ Let $"tmp" : x |-> g(t_1 / x) - g(t_2 / x)$ be a continous function on $N(a)^+$ 
   We have for all $x^* in A$, $ g(t_1/x^*) = g(t_2/x^*)$ by definition. Considering the expression of $g$, we then find : $t_1/x^* = plus.minus t_2/x^* mod 1$. Moreover, since $g$ only reach $g(t_1/a) = 1/2$ once per period, we have $t_1/a = t_2/a mod 1$, i.e., $|t_1/a - t_2/a| = k_a in NN$.
 
 Then,  $t_1/x^* = plus.minus t_2/x^* mod 1$ i.e., $|t_1/x^* minus.plus t_2/x^*| = k_* in NN$, and therefore $|t_1 minus.plus t_2| = a k_a = x^* k_*$, and $x^* > a$ implies $k_a > k_* >=0$. However, $x^* = abs(t_1 minus.plus t_2) / k_*$, hence $A$ is finite if $A != emptyset$, and $emptyset$ is a finite set. Finally, $A$ is #underline([a finite set]), i.e., $|A| in NN$.\
-Let then $x_(t_1, t_2) = cases(min A "if" A != emptyset, x in N(a)^+ without {a} "otherwise") $ WLOG $g(t_1/x) >= g(t_2/x) forall x in [a, x_(t_1, t_2)]$\
+Let then $x_(t_1, t_2) = cases(min A "if" A != emptyset, x in N(a)^+ without {a} "otherwise") $ #gls("wlog", display: "WLOG,") $g(t_1/x) >= g(t_2/x) forall x in [a, x_(t_1, t_2)]$\
 Let $a_2 = display(min_((t_1, t_2) in T^*^2)) underbrace(x_(t_1, t_2), > a)$ and $a_1 in ]a, a_2[$,\
 let $t^* = display(argmax_(t' in T^*)) g(t'/a_1)$
 We finally have $forall x in ]a, a_2[, g(t^* / x) >= g(t' / x), forall t' in T^*$.\
@@ -678,7 +532,19 @@ On en déduit la correction de @algonzalo.
 #appendix([Musical Glossary], [
   #print-glossary(show-all:false,
       (
-      (key: "mir", short: "MIR", long:"Music Information Retrieval", group: "Acronyms", desc:[]),
+      (key: "mir", short: "MIR", long:"Music Information Retrieval", group: "Acronyms", desc:[Interdisciplinary science aiming at retrieving information from music, in several ways. Amoungst the various problems tackled by the community, one can notice @transcription, automatic or semi-automatic musical analysis, performance generation or classification...]),
+      
+      (key: "mtu", short: "MTU", long:"Musical Time Unit", group: "Acronyms", desc:[ Time unit for a symbolic, or musical notation, e.g., beat, quarter note (♩), eighth note (♪).]),
+      
+      (key: "rtu", short: "RTU", long:"Real Time Unit", group: "Acronyms", desc:[Time unit to represent real events. Here, we usually used 
+      seconds as RTU.]),
+
+      (key: "wlog", short: "WLOG", long:"Without loss of generality", group: "Acronyms", desc:[The term is used to indicate the assumption that what follows is chosen arbitrarily, narrowing the premise to a particular case, but does not affect the validity of the proof in general. The other cases are sufficiently similar to the one presented that proving them follows by essentially the same logic.]),
+
+      (key:"transcription",
+      short: "transcription",
+      desc:[Process of converting an audio recording into symbolic notation, such as sheet music or MIDI file. This process involves several audio analysis tasks, which may include multi-pitch detection, duration or tempo estimation, instrument identification...],
+      group:"Definitions"),
 
       (key:"tempo",
       short: "tempo",
