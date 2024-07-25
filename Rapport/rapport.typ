@@ -5,10 +5,11 @@
 #show: make-glossary
 #show link: set text(fill: blue.darken(30%))
 #set page(numbering: "1")
+
 #show: ieee.with(
   title: [Tempo curves estimation, generation and analysis,\ L3 intership (CNAM / INRIA)\ 27/05/24 - 02/08/24],
   abstract: [
-    Tempo estimation consists in detecting the speed at which a musician plays, or more generally at which a piece of music is played or heard. Since tempo may not be constant at the scale of a piece, even locally, we need some kind of reference to compare to in order to define said speed. Indeed, a note-wise speed would not match the intuitive notion of tempo, based on a regular _pulse_. Such a reference can be found in Western symbolic notations of music, called either _music score_ or _sheet music_, that allows for a definition of tempo as symbolic speed. We present here some results regarding the generation and analysis of local tempo curves of musical performances, involving methods that need to be given some symbolic information, and methods that generate them on the fly.
+    Tempo estimation consists in detecting the speed at which a musician plays, or more broadly at which a piece of music is played or heard. Since tempo may not be constant at the scale of a piece, even locally, we need some kind of reference to compare to in order to define said speed. Indeed, a note-wise speed would not match the intuitive notion of tempo, based on a regular _pulse_. Such a reference can be found in Western symbolic notations of music, called either _#gls("score", display: "music score")_ or _sheet music_, that allows for a definition of tempo as symbolic speed. We present here some results regarding the generation and analysis of local tempo curves of musical performances, involving methods that need to be given some symbolic information, and methods that generate them on the fly.
   ],
   authors: (
     (
@@ -20,17 +21,19 @@
       email :"florent.jacquemard@inria.fr",
     ),
   ),
-  index-terms: ("Music Information Retrieval", "tempo estimation", "quantification", "musical formalism"),
+  index-terms: ("Music Information Retrieval", "tempo estimation", "quantization", "musical formalism"),
   paper-size:"a4",
 )
 
 #show figure : set figure.caption (position: bottom)
 
+#let mynumb = (..nums, last) => [#last]
+
 #let (
   theorem, lemma, corollary,
   remark, proposition, example,
-  proof, rules: thm-rules
-) = default-theorems("thm-group", lang: "en")
+  proof, definition, rules: thm-rules
+) = default-theorems("thm-group", lang: "en", thm-numbering: mynumb)
 
 #show: thm-rules
 
@@ -60,63 +63,73 @@
 
 #let argmin = math.op("argmin", limits: true)
 #let argmax = math.op("argmax", limits: true)
+#let amin = math.op("amin", limits: true)
 
 #set cite(form: "prose")
 
 = Introduction
 
-The @mir community focuses on three representations of musical information. The first one is raw audio, either recorded or generated, encoded using WAVE or MP3 format. The computation is based on a physical understanding of signals, using audio frames and spectrum, and represents the most common and accessible type of data. The second is a more musically-informed format, representing notes with both pitch (i.e., the note that the listener hear) and duration, encoded within a MIDI file. [Such a file can be displayed as a piano roll, i.e., a graph whose x-axis is time and y-axis is pitch (hence, the y-axis is discrete)].
-The last way to encode musical information is the computed counterpart of sheet music. A sheet music is a way to write down a musical score, that is usually computed as a MusicXML file, mainly for display and analysis purposes. It comes with a _symbolic_ and abstract notation for time, that only describes the length of events in relation to a specific abstract unit, called a @beat, and the pitch of each event. These data are actually ordered from the most to the least common and accessible on a large scale.\
+The @mir community focuses on three representations of musical information, presented here from the least to the most formatted. The first one is raw audio, either recorded or generated, encoded using WAVE or MP3 formats. The computation is based on a physical understanding of signals, using audio frames and spectrum, and represents the most common and accessible kind of data. The second is a more musically-informed format, representing notes with both pitch (i.e., the note that the listener hear) and duration, encoded within a MIDI file.
+The last way to encode musical information is a MusicXML file, mainly used for display and analysis purposes. The latter relies on a symbolic and abstract notation for time, that only describes the length of events in relation to a specific abstract unit, called a @beat, and indicates as well the pitch and @articulation of those events.
+Those symbolic indications are then to be interpretated by a performer. Hence, a musical performance is not only about theoretical compliance with rhythmic musical theory (a task that computers excel at), but rather, and actually mostly, about sprinkling micro-errors (refered to in this report as timings, or shifts).
 
-To actually play a sheet music, one needs a given @tempo, usually indicated as the amount of beat per minute (BPM). Therefore, the notion of tempo allows to translate symbolic notation expressed in #gls("mtu", long:false) to real time events expressed in #gls("rtu", long:false). We will discuss later on a formal definition of tempo.
-However, tempo itself is insufficient to describe an actual performance of a sheet music, i.e., the sequence of real time events. Indeed, @peter2023sounding present four parameters, among which tempo and @articulation appear the most salient in contrast with @velocity and timing. The latter represents the delay between the theorical real time onset according to the current tempo, and the actual onset heared in the performance. Even though such a delay is inevitable for neurological and biological reasons, those timings are usually overemphasized and understood as part of the musical expressivity of the performance.\
+Moreover, to actually play a sheet music, one needs a given @tempo, usually indicated as an amount of beat per minute (BPM). Therefore, the notion of tempo allows to translate symbolic notation expressed in #gls("mtu", long:false) into real time events expressed in #gls("rtu", long:false). We will present a formal definition for both tempo and performance in @formal_consider. \
 
-Unlike one may imagine, a performance of a given sheet music does need to contains some errors in order to sound "musical". Otherwise, the result would sound too unhumanize, automatic, i.e., unalive and thus unmusical.
+However, tempo itself is insufficient to translate a sheet music into an musical performance, i.e., a sequence of real time events. Indeed, @peter2023sounding present four parameters, among which tempo and articulation appear the most salient as opposed to @velocity and #gls("timing", long:false). Even though the MIR community studies the four parameters, the hierarchy exposed by #cite(<peter2023sounding>, form:"normal") embodies quite well their relative priority within litterature. Besides, although velocity don't help to meaningfully estimate tempo, the latter allows to marginally improve velocity-related predictions. Actually, velocity can be predicted relatively well when trained across recordings of the same piece, but fail dismally when trained across a specific musician's recordings of other pieces, implying that score features may trump individual style when modeling loudness choices #cite(<Kosta2016Mapping>, form: "normal").
+Here, we shall focus mainly on tempo estimation for a given performance recorded as a MIDI file, on both a local and global level, and with or without prior knowledge of a reference (music) @score.\ \
 
-Even though the community studies the four parameters, the hierarchy exposed by #cite(<peter2023sounding>, form:"normal") embodies quite well their relative priority within litterature. @Kosta2016Mapping present results pointing that, although velocities don't help to meaningfully estimate tempo, the latter allows to marginally upgrade velocity-related predictions. Actually, velocity appears to be more of a score parameter rather than a performance one : automatic learning methods trained on performances of a single piece showed much better results when asked to predict velocities employed by another performer on the same piece than when trained on other performances of the same performer.\
+Tempo and related works actually hold a prominent place in litterature. Tempo inference was first computed based on probabilistic models #cite(<raphael_probabilistic_2001>, form: "normal") #cite(<nakamura_stochastic_2015>, form: "normal") #cite(<nakamura_outer-product_2014>, form:"normal"), and physical / neurological models #cite(<large_dynamics_1999>, form: "normal") #cite(<schulze_keeping_2005>, form: "normal") as methods for real time score following from a performance ; and later the community tried neural network models #cite(<Kosta2016Mapping>, form:"normal") and hybrids approaches #cite(<shibata_non-local_2021>, form: "normal"). As most of the previous examples, we shall focus here on mathematically and/or musically explainable methods.\
 
+Since tempo needs a symbolic representation to be meaningful, one can consider @transcription as a tempo-related work. We will save this discussion for @quanti.\
 
-In this study, we shall focus mainly on tempo estimation for a given performance recorded as a MIDI file, on both a local and global level. @soa presents an overview of the domain and related problems. We then present the following contributions :
-- a justified proposition for a formal definition of tempo based on #cite(<raphael_probabilistic_2001>, form: "normal"), #cite(<kosta_mazurkabl:_2018>, form: "normal") and #cite(<hu_batik-plays-mozart_2023>, form: "normal") (#link(<formal_consider>)[III.A]) ; and some immediate consequences (#link(<naive_use>)[III.B])
-- a revision of #cite(<large_dynamics_1999>, form: "normal") and #cite(<schulze_keeping_2005>, form: "normal") to fit a score-based approach (#link(<largmodif>)[III.C])
-- a general theorical framework for scoreless tempo estimation with application to #cite(<murphy_quantization_2011>, form: "normal") #cite(<romero-garcia_model_2022>, form: "normal") (#link(<estimator_intro>)[IV.B])
-- an extension of #cite(<romero-garcia_model_2022>, form: "normal"), to fit tempo estimation, and some new theorical results (#link(<quanti>)[IV.D], #link(<quanti_revised>)[IV.E] and @gonzalo_spectre)
-- A method for data augmentation, and results based on #cite(<foscarin_asap:_2020>, form: "normal") and #cite(<peter_automatic_2023>, form: "normal") (@data_gen)
+However, note-alignement, that is matching between each note of a performance with those indicated by a given score is a very useful preprocessing technique, especially for direct tempo estimation and further analysis, such as #cite(<kosta_mazurkabl:_2018>, form:"normal") #cite(<hentschel_annotated_2021>, form:"normal") #cite(<hu_batik-plays-mozart_2023>, form:"normal"). Two main methods are to be found in litterature : a dynamic programming algorithm, equivalent to finding a shortest path #cite(<muller_memory-restricted_nodate>, form: "normal"), that can works on raw audio ; and a Hidden Markov Model that needs more formatted data, such as MIDI files #cite(<nakamura_performance_2017>, form: "normal").\
+\
+We then present the following contributions :
+#list(
+  marker: [‣],
+  indent: 0.2em,
+  body-indent: 0.5em,
+  [a formal definition of tempo based on #cite(<raphael_probabilistic_2001>, form: "normal"), #cite(<kosta_mazurkabl:_2018>, form: "normal") and #cite(<hu_batik-plays-mozart_2023>, form: "normal") (#link(<formal_consider>)[III.A]) ; and some immediate consequences (#link(<naive_use>)[III.B])],
+  [a score based revision of #cite(<large_dynamics_1999>, form: "normal") and #cite(<schulze_keeping_2005>, form: "normal") for tempo inference (#link(<largmodif>)[III.C])],
+  [a general theoretical framework for scoreless tempo estimation with application to #cite(<murphy_quantization_2011>, form: "normal") #cite(<romero-garcia_model_2022>, form: "normal") (#link(<estimator_intro>)[IV.B])],
+  [a new technique of tempo inference, without score, based on #cite(<romero-garcia_model_2022>, form: "normal"), and related new theoretical results (#link(<quanti>)[IV.D], #link(<quanti_revised>)[IV.E] and @gonzalo_spectre)],
+  [A method for data augmentation, and related theoretical results, based on #cite(<foscarin_asap:_2020>, form: "normal") and #cite(<peter_automatic_2023>, form: "normal") (@data_gen)]
+)
 
-This report and associated algorithms can be found on #cite(<git>, form: "normal").
-
-= State of Art <soa>
-
-Tempo and related works actually hold a prominent place in litterature. Direct tempo estimation was first computed based on probabilistic models (@raphael_probabilistic_2001 @nakamura_stochastic_2015 #cite(<nakamura_outer-product_2014>, form:"normal")), and physical / neurological models (@large_dynamics_1999 @schulze_keeping_2005) ; before the community tried neural network models #cite(<Kosta2016Mapping>, form:"normal") and hybrids approaches (@shibata_non-local_2021). As the majority of previous examples, we shall focus here on mathematically and/or musically explainable methods.\
-
-Since tempo needs a symbolic representation to be meaningful, one can consider @transcription as a tempo-related work. We will keep this discussion for @quanti and @conclusion.\
-
-However, note-alignement, that is matching each note of a performance with those indicated by a given score is a very useful preprocessing technique, especially for direct tempo estimation and further analysis, such as #cite(<kosta_mazurkabl:_2018>, form:"normal") #cite(<hentschel_annotated_2021>, form:"normal") #cite(<hu_batik-plays-mozart_2023>, form:"normal"). Two main methods are to be found in litterature : a dynamic programming algorithm, equivalent to finding a shortest path (@muller_memory-restricted_nodate), that can works on raw audio (WAVE files) ; and a Hidden Markov Model (@nakamura_performance_2017) that needs more formatted data, such as MIDI files.
-
+This document, and associated algorithm implementations, can be found on the dedicated github repository #cite(<git>, form: "normal").
 
 = Score-based approaches
 
 == Formal considerations <formal_consider>
 
-Since we chose to focus on MIDI files, we will represent a performance as a strictly increasing sequence of events $(t_n)_(n in NN)$, each element of whose indicates the onset of the corresponding performance event. Such a definition is very close to an actual MIDI representation.\
+Since we chose to focus on MIDI files, we will represent a performance as a strictly increasing sequence of timepoints, or events, $(t_n)_(n in NN)$, each element of whose indicates the onset of a corresponding performance event. Such a definition is very close to an actual MIDI representation.\
 
-For practical considerations, we will stack together all events whose distance in time is smaller than $epsilon = 20 "ms"$. This order of magnitude, calculated by @nakamura_outer-product_2014 represents the limits of human ability to tell two rythmic events apart, and is widely used within the field #cite(<shibata_non-local_2021>, form:"normal") 
+For practical considerations, we will stack together all events whose distance in time is smaller than $epsilon = 20 "ms"$. This order of magnitude, calculated by #cite(<nakamura_outer-product_2014>, form: "normal") represents the limits of human ability to tell two rhythmic events apart, and is widely used within the field
   #cite(<kosta_mazurkabl:_2018>, form:"normal")
-  #cite(<hentschel_annotated_2021>, form:"normal")
   #cite(<hu_batik-plays-mozart_2023>, form:"normal")
-  #cite(<nakamura_performance_2017>, form:"normal")
+    #cite(<murphy_quantization_2011>, form: "normal")
   #cite(<romero-garcia_model_2022>, form:"normal")
   #cite(<foscarin_asap:_2020>, form:"normal")
   #cite(<peter_automatic_2023>, form:"normal")
-  #cite(<murphy_quantization_2011>, form: "normal").\
+  #cite(<shibata_non-local_2021>, form:"normal") 
+  #cite(<hentschel_annotated_2021>, form:"normal").\
 
-Likewise, a sheet music will be represented as a strictly increasing sequence of events $(b_n)_(n in NN)$. In both of those definition, the terms of the sequence do not indicate the nature of the event (@chord, single note, @rest...). Moreover, in terms of units, $(t_n)$ corresponds to real onset, thus expressed in seconds, whereas $(b_n)$ corresponds to theorical or symbolic onsets, expressed in beats.\
+Likewise, a sheet music will be represented as a strictly increasing sequence of symbolic events $(b_n)_(n in NN)$. In both of those definition, the terms of the sequence do not indicate the nature of the event (@chord, single note, @rest...). Moreover, in terms of units, $(t_n)$ corresponds to RTU, whereas $(b_n)$ corresponds to MTU.\
 
-With those definitions, let us formally define tempo $T(t)$ so that, for all $n in NN$, $integral_(t_0)^(t_n) T(t) dif t = b_n - b_0$.\
-@ann1 shows that this definition is equivalent to : $forall n in NN, integral_(t_n)^(t_(n+1)) T(t) dif t = b_(n+1) - b_n$.
-However, tempo is only tangible (or observable) between two events _a priori_. We will then define the canonical tempo $T^*(t)$ so that :\
-$forall x in RR^+, forall n in NN, x in bracket t_n, t_(n+1) bracket => T^*(x) = (b_(n+1) - b_n) / (t_(n+1) - t_n)$ <tempo_definition>.\
-The reader can verify that this function is a formal tempo according to the previous definition. From now on, we will consider the convention : $t_0 = 0 "(s)"$ et $b_0 = 0 "(beat)"$.\
+With those definitions, let us formally define tempo :
+#definition[
+  $T in (RR^*_+)^RR$ is said to be a formal tempo (curve) according to $(t_n)$ and $(b_n)$ when, for all $n in NN$, $integral_(t_0)^(t_n) T(t) dif t = b_n - b_0$
+] <tempo_def>
+@ann1 proves the following proposition :
+#proposition[
+  A tempo curve $T in (RR^*_+)^RR$ is a formal tempo according to $(t_n)$ and $(b_n)$ iff $forall n in NN, integral_(t_n)^(t_(n+1)) T(t) dif t = b_(n+1) - b_n$
+]
+However, tempo is only tangible (or observable) between two events _a priori_. We then introduce the following :
+#definition[
+  Given $(t_n)$ and $(b_n)$, respectively a performance and a score, the canonical tempo is defined as a stepwise constant function $T in (RR^*_+)^RR$ so that :\
+  $forall x in RR^+, forall n in NN, x in bracket t_n, t_(n+1) bracket => T^*(x) = (b_(n+1) - b_n) / (t_(n+1) - t_n)$
+] <tempo_definition>
+The reader can verify that this function is a formal tempo according to @tempo_def. From now on, we will consider the convention : $t_0 = 0 "RTU"$ et $b_0 = 0 "MTU"$.\
 
 Even though there is a general consensus in the field as for the interest and informal definition of tempo, several formal definitions coexist within litterature : @shibata_non-local_2021 and @nakamura_stochastic_2015 take $1 / T^*$ as definition ; @raphael_probabilistic_2001, @kosta_mazurkabl:_2018 et @hu_batik-plays-mozart_2023 choose similar definitions than the one given here (approximated at the scale of a @measure or a section for instance).\
 
@@ -140,7 +153,7 @@ In our study, we chose to rely on the (n)-ASAP dataset #cite(<peter_automatic_20
   ],
 ) <naive_curve>
 
-In this graph, one can notice how $T^*$ (plotted as little dots) appears noisy over time; even though allowing to distinguish a tempo change at $t_1 = 130$ s and $t_2 = 270$ s. Both the sliding window average (dotted line) and median (full line) of $T^*$ seem unstable, presenting undesirable peaks, whereas the "feeled" tempo is quite constant for the listener, although the median line is a bit more stable than the average line, as expected. There are two explanation for those results. First, fast events are harder to play exactly on time, and the very definition being a ratio with a small theorical value as the denominator explains the deviation and absurd immediate tempo plotted. In fact, we can read that about 10 points are plotted over 400 BPM (keep in mind that usual tempo are in the range 40 - 250 BPM). Second, the notion of timing and tempo are mixed together in this computation, hence giving results that do not match the listener feeling of a stable tempo.  Actually, timing can be seen as little modifications to the "official" score, and using the resulting score would allow for curves that fit better the listener feeling, though needing an actual transcription of the performance first.
+In this graph, one can notice how $T^*$ (plotted as little dots) appears noisy over time; even though allowing to distinguish a tempo change at $t_1 = 130$ s and $t_2 = 270$ s. Both the sliding window average (dotted line) and median (full line) of $T^*$ seem unstable, presenting undesirable peaks, whereas the "feeled" tempo is quite constant for the listener, although the median line is a bit more stable than the average line, as expected. There are two explanation for those results. First, fast events are harder to play exactly on time, and the very definition being a ratio with a small theoretical value as the denominator explains the deviation and absurd immediate tempo plotted. In fact, we can read that about 10 points are plotted over 400 BPM (keep in mind that usual tempo are in the range 40 - 250 BPM). Second, the notion of timing and tempo are mixed together in this computation, hence giving results that do not match the listener feeling of a stable tempo.  Actually, timing can be seen as little modifications to the "official" score, and using the resulting score would allow for curves that fit better the listener feeling, though needing an actual transcription of the performance first.
 
 == Physical models
 
@@ -153,26 +166,26 @@ The approach developped by @large_dynamics_1999 consider a simplified neurologic
 Here, $(Phi_n)$ corresponds to the phase, or rather the phase shift between the oscillator and the external events, and $(p_n)$ embodies its period. Finally, $eta_p$ and $eta_Phi$ are both constant parameters. This initial model is then modified to consider a notion of attending _via_ the $kappa$ parameter, whose value change over time according to other equations. The new model contains the same formulas, with the following definition for $F$\
 $F : Phi, kappa -> exp(kappa cos(2pi Phi)) / exp(kappa) sin(2pi Phi)/(2 pi)$.\
 
-Even though this model shows pretty good results, has been validated through some experiments in #cite(<large_dynamics_1999>, form:"normal"), and is still used in the previously presented version (@large_dynamic_2023), a theorical study of the system behavior remains quite complex, even in simplified theorical cases #cite(<schulze_keeping_2005>, form:"normal"), notably because of the function $F$ expression.\
+Even though this model shows pretty good results, has been validated through some experiments in #cite(<large_dynamics_1999>, form:"normal"), and is still used in the previously presented version (@large_dynamic_2023), a theoretical study of the system behavior remains quite complex, even in simplified theoretical cases #cite(<schulze_keeping_2005>, form:"normal"), notably because of the function $F$ expression.\
 \
 
-In order to simplify the previous model, @schulze_keeping_2005 present _TimeKeeper_, that can be seen as a linearization of the previous approach, valid in the theorical framwork of a metronome presenting small tempo variations. In fact, there is a strong analogy between the two models, that are almost equivalent under specific circumstances, as shown by @loehr_temporal_2011. Here, we used the derandomised version presented in #cite(<loehr_temporal_2011>, form: "normal"), where $M_i = 0$ and $T_i = tau_i$ for all $i in NN$.
+In order to simplify the previous model, @schulze_keeping_2005 present _TimeKeeper_, that can be seen as a linearization of the previous approach, valid in the theoretical framwork of a metronome presenting small tempo variations. In fact, there is a strong analogy between the two models, that are almost equivalent under specific circumstances, as shown by @loehr_temporal_2011. Here, we used the derandomised version presented in #cite(<loehr_temporal_2011>, form: "normal"), where $M_i = 0$ and $T_i = tau_i$ for all $i in NN$.
 
-None of those models have an inherent comprehension of musical score information, since they both rely on a rather stable metronome. In the version displayed hereafter, they were modified to consider score information, in order to to create a more stable and precise value of tempo than the naive approach previously presented. Those modifications are detailled in the following paragraph (OR IN APPENDIX ?), and were made in order to keep consistency with the original models in their initial theorical framework of validity.
-Let $display(min_"abs") : a, b |-> cases(a "if" |a| < |b|, b "otherwise")$\
+None of those models have an inherent comprehension of musical score information, since they both rely on a rather stable metronome. In the version displayed hereafter, they were modified to consider score information, in order to to create a more stable and precise value of tempo than the naive approach previously presented. Those modifications are detailled in the following paragraph (OR IN APPENDIX ?), and were made in order to keep consistency with the original models in their initial theoretical framework of validity.
+Let $amin : a, b |-> cases(a "if" |a| < |b|, b "otherwise")$\
 
 We first modify the @large_dynamics_1999 equations accordingly : <largmodif>
 #nb_eq($Phi_(n+1) = Phi_n + (t_(n+1) - t_n) / p_n - eta_Phi F(Psi_n, kappa_n)$)
 #nb_eq($p_(n+1) = p_n (1 + eta_p F(Psi_n, kappa_n))$)\
-$Psi_n = -display(min_"abs") (k + b_n - Phi_n, k + 1 + b_n - Phi_n) \ k = floor(Phi_n - b_n)$.
+$Psi_n = -amin (k + b_n - Phi_n, k + 1 + b_n - Phi_n) \ k = floor(Phi_n - b_n)$.
 
 Using the analogy presented in #cite(<loehr_temporal_2011>, form: "normal"), we then obtain the following equations for _TimeKeeper_ :
 
 #nb_eq($A_(i+1) = K_i (1 - alpha) + tau_i - (t_(i+1) - t_i)$)
 #nb_eq($tau_(i+1) = tau_i - beta * (K_i mod_"[-0.5, 0.5[" 1)$)\
-$K_i = -display(min_"abs") (k tau + b_i - A_i, (k + 1)tau + b_i - A_i) \ k = floor((A_i - b_i) / tau_i)$.
+$K_i = -amin (k tau + b_i - A_i, (k + 1)tau + b_i - A_i) \ k = floor((A_i - b_i) / tau_i)$.
 
-In  both of those extensions, the $display(min_"abs")$ function is used in order to represent a choice between two corrections. The first argument can be interpreted as a correction with respect to the most recent passed beat time occuring exactly on a actual beat, i.e., $a_1 = display(max_(n in NN  " " : " " b_n <= B_i)) floor(b_n)$ where $B_i$ represents the internal value at time $i$ acting as a beat unit ($Phi_i$ for @large_dynamics_1999 and $A_i$ for @schulze_keeping_2005). The second argument embodies the correction according to the following beat, $a_2 = a_1 + 1$.\
+In  both of those extensions, the $amin$ function is used in order to represent a choice between two corrections. The first argument can be interpreted as a correction with respect to the most recent passed beat time occuring exactly on a actual beat, i.e., $a_1 = display(max_(n in NN  " " : " " b_n <= B_i)) floor(b_n)$ where $B_i$ represents the internal value at time $i$ acting as a beat unit ($Phi_i$ for @large_dynamics_1999 and $A_i$ for @schulze_keeping_2005). The second argument embodies the correction according to the following beat, $a_2 = a_1 + 1$.\
 One can notice that the phase is actually always used modulo 1 in @large_dynamics_1999, since it appears only multiplied by $2pi$ in either $cos$ or $sin$ functions. Using this remark, one can verify that, in the initial presentation of the model with a metronome, i.e., $forall n in NN, b_n = 0 mod 1$, the extension proposed here is equivalent to the original approach, i.e., $(1), (2) <=> (3), (4)$, hence justifying the designation "extension".\
 \
 
@@ -185,7 +198,7 @@ One can notice that the phase is actually always used modulo 1 in @large_dynamic
   ],
 ) <large_curve>
 
-@init_curve (below) exposes the visible difference in tempo initialization of the two models, starting both here with the initial tempo of 70 BPM (♩ = 70, i.e., the _beat_ unit here is a quarter note). _TimeKeeper_ does not manage to converge to any significant tempo. Such a behavior was to be expected, considering the theorical framework for _TimeKeeper_, that is small tempo variation, and correct initialization. However, Large et al model manages to converge to a meaningful result. In fact, in the range 9 to 70 seconds, the estimated tempo according to Large is exactly half of the actual tempo hinted by the blue dots (canonical tempo).
+@init_curve (below) exposes the visible difference in tempo initialization of the two models, starting both here with the initial tempo of 70 BPM (♩ = 70, i.e., the _beat_ unit here is a quarter note). _TimeKeeper_ does not manage to converge to any significant tempo. Such a behavior was to be expected, considering the theoretical framework for _TimeKeeper_, that is small tempo variation, and correct initialization. However, Large et al model manages to converge to a meaningful result. In fact, in the range 9 to 70 seconds, the estimated tempo according to Large is exactly half of the actual tempo hinted by the blue dots (canonical tempo).
 
 #figure(
   image("../Figures/large_nc_version.png", width: 100%),
@@ -200,7 +213,7 @@ One can notice that the phase is actually always used modulo 1 in @large_dynamic
 == Motivations
 
 
-There are three main issues with the previous models, apart from the necessary knowledge of the sheet music, that are : salient sensibility to tempo initialization (cf. @init_curve), unstability that requires some time to (possibly) converge (cf. @large_curve and @init_curve), and difficulty to accurately estimate relevant values of the constant internal parameters. According to our implementation, @large_dynamics_1999 is a particularly chaotic model regarding the latter.\
+There are three main issues with the previous models, apart from the prior knowledge of the sheet music, that are : salient sensibility to tempo initialization (cf. @init_curve), unstability that requires some time to (possibly) converge (cf. @large_curve and @init_curve), and difficulty to accurately estimate relevant values of the constant internal parameters. According to our implementation, @large_dynamics_1999 is a particularly chaotic model regarding the latter.\
 
 We will present here two models focusing on tackling mainly the first two issues previously presented. Those rely on a specific musical property of division : in symbolic notations of music, every single event can be comprehended as a mutliple of a certain unit called a @tatum, usually expressed in beat unit. Therefore, the real events of a performance, or rather their duration, can be interpreted as multiple of this tatum. However, considering a non-constant tempo, the real value (i.e., real duration in seconds) of this tatum may evolve through time, whereas the symbolic value remains constant anyway. Actually, detecting the tatum is equivalent to transcript the performance to sheet music, which a rather more complicated task than tempo estimation. For instance, there are several ways to write down sheet musics that are undistinguishable when performed. We call this ambiguity _tempo octaves_ (cf @ann1).
 
@@ -223,13 +236,13 @@ We then find : $(Delta b_(n+1)) / (Delta b_n) = (T_(n+1)^* Delta t_(n+1)) / (T_(
 hence $(Delta b_(n+1)) / (Delta b_n) = T_(n+1) / T_n times (Delta t_(n+1)) / (Delta t_(n))$.\
 Let us then write the actual formula of the model :\
 #nb_eq($T_(n+1) / T_n = T^*_(n+1) / T^*_n = (Delta t_n) / (Delta t_(n+1)) underbrace(E(T_(n+1) / T_n times (Delta t_(n+1)) / (Delta t_(n))), display((Delta b_(n+1)) / (Delta b_n)))$) <estimator>
-where $E$ is a function-like object (closer to a _object_ in computer science than an actual mathematical function), designated by _estimator_. This function is supposed to act, on a theorical ground, as an oracle that returns the correct value of the symbolic $(Delta b_(n+1)) / (Delta b_n)$ from the given real values indicated in @estimator, therefore supposed to rarely match the theorical values.\
+where $E$ is a function-like object (closer to a _object_ in computer science than an actual mathematical function), designated by _estimator_. This function is supposed to act, on a theoretical ground, as an oracle that returns the correct value of the symbolic $(Delta b_(n+1)) / (Delta b_n)$ from the given real values indicated in @estimator, therefore supposed to rarely match the theoretical values.\
 
 Given an estimator $E$, the tempo value defined as $T_(n+1)$, computed from both $T_n$ and local data, is obtained _via_ the following equation, where $x$ represents $T_(n+1) / T_n$ in @estimator : \
 #nb_eq($T_(n+1) = T_n argmin_(x in [sqrt(2)/2 T_n, sqrt(2) T_n]) d(x, (Delta t_n) / (Delta t_(n+1)) E(x (Delta t_(n+1)) / (Delta t_(n)))) $) <estimatorf>
 where $d : a, b |-> k_*|log(a/b)|, k_* in RR_+^*,$ is a logarithmic distance, choosen since an absolute distance would have favor small values by triangle inequality in the following process.
 
-In the implementation presented here, the estimator role is more to quantify the ratio in order to output a musically relevant value. In our test, we limited these quantifications to accept only regular division (i.e., powers of 2). Furthermore, the numerical resolution for the previous equation was done by a logarithmically evenly spaced search and favor $x$ values closer to 1 (i.e., $T_(n+1)$ closer to $T_n$) in case of distance equality.
+In the implementation presented here, the estimator role is more to quantize the ratio in order to output a musically relevant value. In our test, we limited these quantizations to accept only regular division (i.e., powers of 2). Furthermore, the numerical resolution for the previous equation was done by a logarithmically evenly spaced search and favor $x$ values closer to 1 (i.e., $T_(n+1)$ closer to $T_n$) in case of distance equality.
 
 Such a research allows for a musically explainable result : the current estimation is the nearest most probable tempo, and both halving and doubling the previous tempo is considered as improbable, and as further going from the initial tempo. @ann2 gives further explanation about @estimatorf.
 
@@ -246,15 +259,15 @@ This measure allows to quantify the quality of this model, without considering t
 
 résultats sur (n-)Asap selon les périodes, les compositeurs, etc..., éventuellement en annexe ?
 
-== Towards a quantified approach <quanti>
+== Towards a quantized approach <quanti>
 
 The previous model supposes the existence of an oracle, more or less correct in its predictions, that is actually a (partial) transcriber. In this section, we will focus on this transcribing part, by extending @romero-garcia_model_2022 model with the previous formalism. In fact, we extend the previous approach by considering the estimator as our central model and then extracting tempo values rather than the opposite.
 
 Let $n in NN^*$ and $D subset (R^+)^n$ be a set of some durations of real time events. #cite(<romero-garcia_model_2022>, form: "normal") defined the continuous function $epsilon_D$ as :
 $ epsilon_D : a |-> max_(d in D) min_(m in ZZ) thick |d - m a| $
-This function is called the _transcription error_, and can be interpretated as maximum error (in real time unit) between all real events $d in D$ and theorical real duration of $m a$, where $m$ is a symbolic notation expressed in arbitrary symbolic unit, and $a$ a real time value corresponding to a @tatum at a given tempo. We proove in @gonzalo_spectre that the set of all local maxima of $epsilon_D$, except those that also are minima, is : #nb_eq($M_D &= {d / (k+1/2), d in D, k in NN}\ &= limits(union.big)_(d in D) {d/(k+1/2), k in NN}$) <local_maxima>
-In fact, each of these local maxima corresponds to a change of the $m$ giving the minimum in the expression of $epsilon_D$, hence the following result : in-between two such successive local maxima, the quantification remains the same, i.e., 
-#proposition[Let $m_1, m_2$ be two successive local maxima of $epsilon_D$, $a_1 in ]m_1, m_2[, a_2 in [m_1, m_2], d in D$ and $m in ZZ$.\ Then $m in display(argmin_(k in ZZ)) |d - k a_1| => m in display(argmin_(k in ZZ)) |d - k a_2|$.] <same_quantification>
+This function is called the _transcription error_, and can be interpretated as maximum error (in real time unit) between all real events $d in D$ and theoretical real duration of $m a$, where $m$ is a symbolic notation expressed in arbitrary symbolic unit, and $a$ a real time value corresponding to a @tatum at a given tempo. We proove in @gonzalo_spectre that the set of all local maxima of $epsilon_D$, except those that also are minima, is : #nb_eq($M_D &= {d / (k+1/2), d in D, k in NN}\ &= limits(union.big)_(d in D) {d/(k+1/2), k in NN}$) <local_maxima>
+In fact, each of these local maxima corresponds to a change of the $m$ giving the minimum in the expression of $epsilon_D$, hence the following result : in-between two such successive local maxima, the quantization remains the same, i.e., 
+#proposition[Let $m_1, m_2$ be two successive local maxima of $epsilon_D$, $a_1 in ]m_1, m_2[, a_2 in [m_1, m_2], d in D$ and $m in ZZ$.\ Then $m in display(argmin_(k in ZZ)) |d - k a_1| => m in display(argmin_(k in ZZ)) |d - k a_2|$.] <same_quantization>
 
 With this property, we can then choose to consider only local minima of $epsilon_D$ as in #cite(<romero-garcia_model_2022>, form: "normal"), since there is exactly one local minima in-between two such successive local maxima, and choosing any other value in this range would result in the exact same transcription, with a higher error by definition of a local maxima (that is global on the considered interval). The correctness of the following algorithm to find all local minima within a given interval is proven in @gonzalo_spectre.
 
@@ -274,9 +287,9 @@ pseudocode-list(booktabs: true, hooks: .5em, title: [FindLocalMinima($D != empty
 
 @romero-garcia_model_2022 then defined $G = (V, E)$ a graph whose vertices are the local minima of $epsilon_D$ with $D$ a sliding window, or _frame_, on a given performance, and whose edges are so that they can guarantee a _consistency property_, explained hereafter.
 
-The _consistency property_ for two tatums $a_1, a_2$ specifies that, if $F_sect$ is the set of all values in common between two successive frame, for all $d in F_sect$, $d$ is quantified the same way according to the tatum $a_1$ and $a_2$, i.e., the symbolic value of $d$ is the same when considering either $a_1$ of $a_2$ as the duration of the same given tatum at some tempo (respectively $1/a_1$ and $1/a_2$ as shown in @quanti_revised). From these definitions, we can now define a _tempo curve_ as a path in $G$. In fact, #cite(<romero-garcia_model_2022>, form: "normal") call such a path a _transcription_ rather than a tempo curve, but since an exact tempo curve would be $(T_n^*)$, those two problems are actually equivalent.
+The _consistency property_ for two tatums $a_1, a_2$ specifies that, if $F_sect$ is the set of all values in common between two successive frame, for all $d in F_sect$, $d$ is quantized the same way according to the tatum $a_1$ and $a_2$, i.e., the symbolic value of $d$ is the same when considering either $a_1$ of $a_2$ as the duration of the same given tatum at some tempo (respectively $1/a_1$ and $1/a_2$ as shown in @quanti_revised). From these definitions, we can now define a _tempo curve_ as a path in $G$. In fact, #cite(<romero-garcia_model_2022>, form: "normal") call such a path a _transcription_ rather than a tempo curve, but since an exact tempo curve would be $(T_n^*)$, those two problems are actually equivalent.
 
-Actually, the consistency property is not that restrictive when considering tempo curves. Let $F_1, F_2$ be two successive frames, $F_sect = F_1 sect F_2$, $d in F_sect$, and $p$ a path in $G$ containing a local minima $a_1$ of $epsilon_F_1$. According to @local_maxima, we can divide the set of all local maxima in two, with those "caused" by $F_sect$, $M_F_sect$, and the others. Let then $m_1, m_2 in M_F_sect$. Those are local maxima for both $epsilon_F_1$ and $epsilon_F_2$ by @local_maxima since $F_sect subset F_2$, and therefore there is at least one local minima within the range $]m_1, m_2[$ for both of these functions. However, thanks to @same_quantification, we know that both these local minima will quantify the elements of $D$ the same way. Hence, by defining :
+Actually, the consistency property is not that restrictive when considering tempo curves. Let $F_1, F_2$ be two successive frames, $F_sect = F_1 sect F_2$, $d in F_sect$, and $p$ a path in $G$ containing a local minima $a_1$ of $epsilon_F_1$. According to @local_maxima, we can divide the set of all local maxima in two, with those "caused" by $F_sect$, $M_F_sect$, and the others. Let then $m_1, m_2 in M_F_sect$. Those are local maxima for both $epsilon_F_1$ and $epsilon_F_2$ by @local_maxima since $F_sect subset F_2$, and therefore there is at least one local minima within the range $]m_1, m_2[$ for both of these functions. However, thanks to @same_quantization, we know that both these local minima will quantize the elements of $D$ the same way. Hence, by defining :
 - $m_1 = max{m in M_F_sect : m < a_1}$
 - $m_2 = min{m in M_F_sect : m > a_1}$
 - $a_2$ a local minima of $epsilon_F_2$ in the range $]m_1, m_2[$, which exists since $m_1$ and $m_2$ are local maxima (that are not local minima).
@@ -286,14 +299,14 @@ We obtain : $(a_1, a_2)$ is _consistent_ according to the consistency property.
   The _consistency property_ only implies restrictions relative to the interval of research. In other words, any given strictly partial path $p$ in $G$ can be extended, even if it means considering a bigger interval, for any given performance, and any given frame length for defining $G$.
 ]
 
-However, this restriction on $G$ appears to have some interest. Indeed, let $p$ a path in $G$ locally inconsistent, i.e., such that $a_1, a_2 in p$ so that $d in D$ is quantified differently according to $a_1$ and $a_2$, with $a_1$ and $a_2$ local minima of successive frames. We therefore have a two partial transcriptions of $d$ being either : $m_1$ at tempo $1/a_1$ and $m_2$ at tempo $1/a_2$, $m_1, m_2$ expressed in tatum unit, with $m_1 != m_2$.
+However, this restriction on $G$ appears to have some interest. Indeed, let $p$ a path in $G$ locally inconsistent, i.e., such that $a_1, a_2 in p$ so that $d in D$ is quantized differently according to $a_1$ and $a_2$, with $a_1$ and $a_2$ local minima of successive frames. We therefore have a two partial transcriptions of $d$ being either : $m_1$ at tempo $1/a_1$ and $m_2$ at tempo $1/a_2$, $m_1, m_2$ expressed in tatum unit, with $m_1 != m_2$.
 WHAT IS THE POINT ?
-== Quantification revised <quanti_revised>
+== Quantization revised <quanti_revised>
 
 Let us define from now our tatum $epsilon = 1/60 ♩$, which correspond to an sixteenth note wrapped within a triplet within a quintuplet, and has the property that $1 " " epsilon \/ s = 1 " " ♩ \/ m$.\
 
-With our tatum defined, we can now choose to express all our symbolic units as multiple of this tatum, hence the unit for symbolic values is now $epsilon$. We then have : $T = (Delta b) / (Delta t) = (1 epsilon) / a$, where $a$ is the theorical duration of $epsilon$ at tempo $T$.
-From there, we can define $sigma_D : a |->  1/a epsilon_D (a)$, the _normalized error_, or _symbolic error_, since it embodies the error between a transcription of $d in D$ as $m$ expressed in tatum, hence a quantified and valid transcription, and $d times 1/a = d times T$, which is the expression of the symbolic duration of $d$ at tempo $T$ according to the #link(<tempo_definition>, [definition of canonical tempo]).
+With our tatum defined, we can now choose to express all our symbolic units as multiple of this tatum, hence the unit for symbolic values is now $epsilon$. We then have : $T = (Delta b) / (Delta t) = (1 epsilon) / a$, where $a$ is the theoretical duration of $epsilon$ at tempo $T$.
+From there, we can define $sigma_D : a |->  1/a epsilon_D (a)$, the _normalized error_, or _symbolic error_, since it embodies the error between a transcription of $d in D$ as $m$ expressed in tatum, hence a quantized and valid transcription, and $d times 1/a = d times T$, which is the expression of the symbolic duration of $d$ at tempo $T$ according to the #link(<tempo_definition>, [definition of canonical tempo]).
 
   - LR
   - bidi (2 passes: LR + RL) : justification (en annexe) : retour à la définition formelle de Tempo : valide dans les deux sens, d'où la possibilité de le faire en bidirectionnel + parler rapidement d'une application à Large
@@ -304,7 +317,7 @@ From there, we can define $sigma_D : a |->  1/a epsilon_D (a)$, the _normalized 
 #figure(
   image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%),
   caption: [
-    All potentials tempo curves found by a quantified approach for a performance of Piano Sonata No. 11 in A Major (K. 331: III), W.A Mozart. The tempo scale is linear between ♩ = 40 (bottom) and ♩ = 240 (top)
+    All potentials tempo curves found by a quantized approach for a performance of Piano Sonata No. 11 in A Major (K. 331: III), W.A Mozart. The tempo scale is linear between ♩ = 40 (bottom) and ♩ = 240 (top)
   ],
 )
 
@@ -335,7 +348,7 @@ Depending on the use of this data, one can choose to adapt the definition os $(s
 = Conclusion & perspectives <conclusion>
 
 - intégration pour couplage avec transcription par parsing (+ plus court chemin multi-critère)
-- @quanti_revised presented a model which appear to share some similarities with @large_dynamics_1999 as a score-based approach. Therefore, studying the formalism for a quantifier might allow to obtain some theorical results for the previous model, regarding for instance convergence guarantee and meaningfulness of the result.
+- @quanti_revised presented a model which appear to share some similarities with @large_dynamics_1999 as a score-based approach. Therefore, studying the formalism for a quantizer might allow to obtain some theoretical results for the previous model, regarding for instance convergence guarantee and meaningfulness of the result.
 
 #bibliography("refs.bib", title: "References")
 
@@ -361,14 +374,14 @@ We thus obtain the two implications, hence the equivalence.
 When estimating tempo, or transcribing a performance, there always exist several equivalent possibilities. For instance, given a "correct" transcription $(b_n)$ of a performance $(t_n)$, one can choose to define its own transcription as $t = (b_n / 2)_(n in NN)$.\
 Then, the canonical tempo according to $t$, called $(T_1^*)$, and the one according to $(b_n)$, called $(T_2^*)$ verify :\
 $forall n in NN, T_(1, n)^* = (b_(n+1) / 2 - b_n / 2) / (t_(n+1) - t_n) = 1/2 T_(2, n)^*$.
-Actually, the $t$ transcription corrections to $(b_n)$ where all durations are indicated doubled, but played twice faster, hence giving the exact same theorical performance. Unfortunately, there is no absolute way to decide which of those two transcription is better than the other. This problem is here known as the tempo octave problem, and should be keeped in mind when transcribing or estimating tempo. We present in @estimator_intro a model resistant to these tempo octaves, as well as other kind of octaves not discussed here (for instance multiplying the tempo by $3$ by using @triplet).
+Actually, the $t$ transcription corrections to $(b_n)$ where all durations are indicated doubled, but played twice faster, hence giving the exact same theoretical performance. Unfortunately, there is no absolute way to decide which of those two transcription is better than the other. This problem is here known as the tempo octave problem, and should be keeped in mind when transcribing or estimating tempo. We present in @estimator_intro a model resistant to these tempo octaves, as well as other kind of octaves not discussed here (for instance multiplying the tempo by $3$ by using @triplet).
 
 
 == Tempo convservation when reversing time
 
 First, we want to insist on the fact that none of the sequence $(b_n)$ and $(t_n)$ are infinite, but in order to simplify the notation, we chose to indicate them as usual infinite sequences, or rather only consider them on a finite number of indexes, called $|(b_n)|$ and $|(t_n)|$ respectively, with $|(b_n)| = |(t_n)|$. Let us then define the reversed sequence of $(u_n)_(n in NN)$ as $r((u_n)_(n in NN)) := (overline(u_n) = u_(|(u_n)|) - u_(|(u_n)| - n))_(n in [|0, |(u_n)| |])$. Both $overline(b) = r((b_n)_(n in NN))$ and $overline(t) = r((t_n)_(n in NN))$ are correct representations of a sheet music and performance respectively, as defined in @formal_consider.
 
-Let $t^* = t_(|(t_n)|)$ and $q = |(t_n)|$, $T$ a formal tempo with respect to $(t_n)$ and $(b_n)$, i.e., $forall n in NN, integral_(t_n)^(t_(n+1)) T(t) dif t = b_(n+1) - b_n$, $n in [| 0, q - 1|]$, and $T_r : t |-> T(t^* - t)$.
+Let $t^* = t_(|(t_n)|)$ and $q = |(t_n)|$, $T$ a formal tempo according to $(t_n)$ and $(b_n)$, i.e., $forall n in NN, integral_(t_n)^(t_(n+1)) T(t) dif t = b_(n+1) - b_n$, $n in [| 0, q - 1|]$, and $T_r : t |-> T(t^* - t)$.
 
 $integral_(overline(t_n))^(overline(t_(n+1))) T_r (t) dif t &= integral_(t^* - t_(q - n))^(t^* - t_(q - n-1)) T(t^* - t) dif t = integral_(t_(q - n))^(t_(q - n - 1)) -T(x) dif x\
 &= integral_(t_(q - n - 1))^(t_(q - n)) T(t) dif t\
@@ -377,7 +390,7 @@ $integral_(overline(t_n))^(overline(t_(n+1))) T_r (t) dif t &= integral_(t^* - t
 &= - overline(b_n) + overline(b_(n+1))\
 &= overline(b_(n+1)) - overline(b_n)$
 
-Hence $T_r$ is a formal tempo with respect to $(overline(t_n))$ and $(overline(b_n))$.
+Hence $T_r$ is a formal tempo according to $(overline(t_n))$ and $(overline(b_n))$.
 
 == Musical explication of the choice of  a tempo distance
 
@@ -402,7 +415,7 @@ Therefore, since we want the extreme possible values of our range to imply an eq
 
 == About the estimator $E$
 
-One can notice that $E = id$ implies, by the hypothesis that $E$ acts as an oracle, that the theorical and actual values are the same, or that the performance is a perfect interpretation of the piece. Since real players do not make such performance, we can expect a relevant estimator to act rather differently than the identity function.
+One can notice that $E = id$ implies, by the hypothesis that $E$ acts as an oracle, that the theoretical and actual values are the same, or that the performance is a perfect interpretation of the piece. Since real players do not make such performance, we can expect a relevant estimator to act rather differently than the identity function.
 
 Moreover, $E$ is not a function : its expression only has to be fixed when computing the numerical resolution for the $argmin$. Hence, an given output can depends on several previous outputs. In an extreme case, $E$ can even be a transcripting system. However, in our problem of tempo estimation, we do not have as much constraints as in transcription.\
 Indeed, the following figures displays two transcription A and B, the latter being incorrect with regards to usual transcription convention, and their corresponding tempo curves.\
@@ -425,10 +438,10 @@ One can notice that these are quite similar, and in fact, a human being could no
   [#figure(image("../Figures/tempo_distance.png", width: 100%), caption: [Tempo distance (s)]) <tempo_distance>], figure(image("../Figures/tempo_distance2.png", width: 100%), caption: [Tempo distance (log)])
 )
 
-Tempo distance between the two previous curves. Being able to differentiate them would imply to tell apart two rythmic events within 4 ms, which is suppose impossible for a humain being according to the value of $epsilon$ defined (and displayed as the top line in @tempo_distance) in @formal_consider.
+Tempo distance between the two previous curves. Being able to differentiate them would imply to tell apart two rhythmic events within 4 ms, which is suppose impossible for a humain being according to the value of $epsilon$ defined (and displayed as the top line in @tempo_distance) in @formal_consider.
 ]) <ann2>
 
-#appendix([Quantified Model], [
+#appendix([Quantized Model], [
 
 In this section we use the notation introduced by @romero-garcia_model_2022, that essentially replace $D$ by $T$.
 
@@ -530,14 +543,16 @@ On en déduit ainsi un algorithme en $cal(O)(|T^2| t^* / tau log( |T| t^* / tau)
 On en déduit la correction de @algonzalo.
 ]) <gonzalo_spectre>
 
-#appendix([Musical Glossary], [
+#highlight([TODO : send report to Gonzalo, (Rigaux, Lemaitre)])
+
+#appendix([Glossary], [
   #print-glossary(show-all:false,
       (
-      (key: "mir", short: "MIR", long:"Music Information Retrieval", group: "Acronyms", desc:[Interdisciplinary science aiming at retrieving information from music, in several ways. Amoungst the various problems tackled by the community, one can notice @transcription, automatic or semi-automatic musical analysis, performance generation or classification...]),
+      (key: "mir", short: "MIR", long:"Music Information Retrieval", group: "Acronyms", desc:[Interdisciplinary science aiming at retrieving information from music, in several ways. Amoungst the various problems tackled by the community, one can notice @transcription, automatic or semi-automatic musical analysis, and performance generation or classification...]),
       
       (key: "mtu", short: "MTU", long:"Musical Time Unit", group: "Acronyms", desc:[ Time unit for a symbolic, or musical notation, e.g., beat, quarter note (♩), eighth note (♪).]),
       
-      (key: "rtu", short: "RTU", long:"Real Time Unit", group: "Acronyms", desc:[Time unit to represent real events. Here, we usually used 
+      (key: "rtu", short: "RTU", long:"Real Time Unit", group: "Acronyms", desc:[Time unit to represent real events. Here, we usually use 
       seconds as RTU.]),
 
       (key: "wlog", short: "WLOG", long:"Without loss of generality", group: "Acronyms", desc:[The term is used to indicate the assumption that what follows is chosen arbitrarily, narrowing the premise to a particular case, but does not affect the validity of the proof in general. The other cases are sufficiently similar to the one presented that proving them follows by essentially the same logic.]),
@@ -547,13 +562,19 @@ On en déduit la correction de @algonzalo.
       desc:[Process of converting an audio recording into symbolic notation, such as sheet music or MIDI file. This process involves several audio analysis tasks, which may include multi-pitch detection, duration or tempo estimation, instrument identification...],
       group:"Definitions"),
 
+      (key:"score",
+      short: "score",
+      long: [_sheet music_],
+      desc:[Symbolic notation for music. The version considered here is supposed to fit a simplified version of the rhythmic Western notation system],
+      group:"Definitions"),
+
       (key:"tempo",
       short: "tempo",
-      desc:[Formally defined in #link(<tempo_definition>, [Section III]) by : $T_n^"*" = (b_(n+1) - b_n) / (t_(n+1) - t_n)$, tempo is a measure of the immediate speed of a performance, usually written on the score. It can be seen as a ratio between the symbolic speed indicated by the score, and the actual speed of a performance. Tempo is often expressed in @beat per minute, or bpm],
+      desc:[Formally defined in @tempo_def by :\ $T_n^"*" = (b_(n+1) - b_n) / (t_(n+1) - t_n)$, tempo is a measure of the immediate speed of a performance, usually written on the score. It can be seen as a ratio between the symbolic speed indicated by the score, and the actual speed of a performance. Tempo is often expressed in @beat per minute, or bpm],
       group:"Definitions"),
 
       (key:"beat", short:"beat",
-      desc:[Symbolic time unit of a score, its value is defined by a time signature. Although its value can change within a score, or through various transcription of a same piece, this notion is usually the most convenient way to describe a rythmic sequence of events.],
+      desc:[Symbolic time unit of a score, its value is defined by a time signature. Although its value can change within a score, or through various transcription of a same piece, this notion is usually the most convenient way to describe a rhythmic sequence of events, since it is supposed to embody the _pulse_ of the music felt by the listener.],
       group:"Definitions"),
       (
         key: "tatum",
@@ -565,7 +586,7 @@ On en déduit la correction de @algonzalo.
       (
         key:"timesig",
         short:"time signature",
-        desc:"The time signature is a convention in Western music notation that specifies how many note values of a particular type are contained in each measure. It is composed of two integers : the amount of beat contained within a measure, and the value of these beats, indicated as division of a whole note, i.e., four quarter notes.",
+        desc:"The time signature is a convention in Western music notation that specifies how many note values of a particular type are contained within each measure. It is composed of two integers : the amount of beat contained within a measure, and the value of these beats, indicated as division of a whole note, i.e., four quarter notes.",
         group:"Definitions"
       ),
 
@@ -636,6 +657,14 @@ On en déduit la correction de @algonzalo.
         key:"triplet",
         short:"triplet",
         desc:[A triplet is a musical symbol indicating to play a third of the indicated duration.],
+        group:"Definitions"
+      ),
+
+      (
+        key:"timing",
+        short: "timing",
+        long: [_shifts_],
+        desc: [Delay between the theoretical real time onset according to the current tempo, and the actual onset heard in the performance. Even though such a delay is inevitable for neurological and biological reasons, those timings are usually overemphasized and understood as part of the musical expressivity of the performance],
         group:"Definitions"
       ),
 
