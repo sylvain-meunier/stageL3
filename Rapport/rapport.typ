@@ -79,11 +79,11 @@ We thus introduce the following contributions :
   marker: [‣],
   indent: 0.2em,
   body-indent: 0.5em,
-  [Formal definition of tempo, based on #cite(<raphael_probabilistic_2001>, form: "normal"), #cite(<kosta_mazurkabl:_2018>, form: "normal") and #cite(<hu_batik-plays-mozart_2023>, form: "normal") (#link(<formal_consider>)[III.A]) ; and some immediate consequences (#link(<naive_use>)[III.B])],
-  [Score based revision of #cite(<large_dynamics_1999>, form: "normal") and #cite(<schulze_keeping_2005>, form: "normal") for tempo inference (#link(<largmodif>)[III.C])],
-  [General theoretical framework for scoreless tempo estimation with application to #cite(<murphy_quantization_2011>, form: "normal") #cite(<romero-garcia_model_2022>, form: "normal") (#link(<estimator_intro>)[IV.B])],
-  [New technique of tempo inference, without score, based on #cite(<romero-garcia_model_2022>, form: "normal"), and related new theoretical results (#link(<quanti>)[IV.D], #link(<quanti_revised>)[IV.E] and @gonzalo_spectre)],
-  [Method for data augmentation, and related results, based on #cite(<foscarin_asap:_2020>, form: "normal") and #cite(<peter_automatic_2023>, form: "normal") (@data_gen)]
+  [Formal definition of tempo, based on #cite(<raphael_probabilistic_2001>, form: "normal"), #cite(<kosta_mazurkabl:_2018>, form: "normal") and #cite(<hu_batik-plays-mozart_2023>, form: "normal") (#link(<formal_consider>)[II.A]) ; and some immediate consequences (#link(<naive_use>)[II.B])],
+  [Score based revision of #cite(<large_dynamics_1999>, form: "normal") and #cite(<schulze_keeping_2005>, form: "normal") for tempo inference (#link(<largmodif>)[II.C])],
+  [General theoretical framework for scoreless tempo estimation with application to #cite(<murphy_quantization_2011>, form: "normal") #cite(<romero-garcia_model_2022>, form: "normal") (#link(<estimator_intro>)[III.A])],
+  [New technique of tempo inference, without score, based on #cite(<romero-garcia_model_2022>, form: "normal"), and related new theoretical results (#link(<quanti>)[III.C], #link(<quanti_revised>)[III.D] and @gonzalo_spectre)],
+  [Method for data augmentation, and related results, based on #cite(<foscarin_asap:_2020>, form: "normal") and #cite(<peter_automatic_2023>, form: "normal")  (#link(<data_gen>)[IV.A])]
 )
 
 This document, and associated algorithm implementations, can be found on the dedicated github repository #footnote[https://github.com/sylvain-meunier/stageL3] #cite(<git>, form: "normal").
@@ -192,64 +192,84 @@ Here, $A_i$ is the absolute asynchrony at time $t_i$, with a similar role than t
 
 = Scoreless approaches
 
-== Motivations and previous difficulties
+The first issue with the two previous approaches is the requirement of both a reference score and a note-alignment between the given performance and the latter, which is something the field lacks at large scale. We therefore will now focus on methods for tempo estimation that *do not* require the prior knowledge of a reference score. However, we will suppose such a score to actually exists, and use to notation $(b_n)$ to designate it for formal proofs. One would notice that in this framework, estimating $T^*$ is equivalent to transcribing the actual performance, which we can consider to be the most exact tempo curve one can compute. Since such a tempo cannot be uniquely determined (see @ann1 for details on the _tempo octave_ problem), we will here try to relax the problem by finding a "flattened" tempo curve that intuitively gives the general tempo hinted by $T^*$.
+To a lesser extent, we will try to find methods that do not present salient sensibility to tempo initialization, unstability nor require to accurately estimate relevant values of some constant internal parameters. According to our implementation, _Large et al._ model is a particularly chaotic model regarding the latter.\
 
-
-There are three main issues with the previous models, apart from the prior knowledge of the sheet music, that are : salient sensibility to tempo initialization (cf. @init_curve), unstability that requires some time to (sometimes) converge (cf. @large_curve and @init_curve), and difficulty to accurately estimate relevant values of the constant internal parameters. According to our implementation, _Large et al._ model is a particularly chaotic model regarding the latter.\
-
-This section present two models that focus on tackling mainly the first two issues previously exposed. Those rely on a specific musical property of division : in symbolic notations of music, every single event can be comprehended as a mutliple of a certain unit called a @tatum, usually expressed in beat unit. Therefore, the real events of a performance, or rather their duration, can be interpreted as multiple of this tatum. However, considering a non-constant tempo, the real value (i.e., real duration in seconds) of this tatum may evolve through time, whereas the symbolic value remains constant anyway. Actually, detecting the tatum is equivalent to transcript the performance to sheet music, which a rather more complicated task than tempo estimation. For instance, there are several ways to write down sheet musics that are undistinguishable when performed. We call this ambiguity _tempo octaves_ (cf @ann1).
-
-We considered here two quantization methods extracted from litterature : @murphy_quantization_2011 and @romero-garcia_model_2022. Both of these papers present a theory of approximate division, that is a way to find a rational number, interpreted as the ratio of two symbolic events expressed in arbitrary unit (for instance in tatum) from the real events durations in seconds. Such a link is equivalent to defining a tempo with the formalism presented in III. Although #cite(<murphy_quantization_2011>, form: "normal") provides an algorithm to find candidate rationals, they do not include a way to compare those candidates, thus leaving no choice but an exhaustive approach (top-down in the paper). With another formalism, #cite(<romero-garcia_model_2022>) define a graph, restrained only to consistent values of tatum. We choose to adapt the latter, although their presentation is clearly user-oriented rather than automatic, since the introduced graph allows to mathematically (and therefore automatically) define a "good" and a "best" choice among all possible found tatum values.
+This section present two models, respectively based on #cite(<murphy_quantization_2011>, form: "normal") and #cite(<romero-garcia_model_2022>, form: "normal") that rely on the notion of @quantization, i.e., the process of converting real values into simple enough rational numbers, according to restrictions.
 
 == Introduction of an estimator based approach <estimator_intro>
 
-#definition(numbering: none)[Given a sequence $(u_n)_(n in NN)$, we now define : $(Delta u_n)_(n in NN) := (u_(n+1) - u_n)_(n in NN)$ for the following sections.]
+#definition(numbering: none)[Given a sequence $(u_n)_(n in NN)$, let from now on $(Delta u_n)_(n in NN) "be" (u_(n+1) - u_n)_(n in NN)$]
 
-The reason why the previous models have to converge is because they both try to find an exact value of tempo, and therefore sudden and huge tempo changes will lead to a uncertain period for the resulting tempo estimation, that is in this way the exact same problem as tempo initialization. When doing tempo estimation, we are in fact much more interested in a local tempo variation, relative to the previous estimation, rather than an absolute value, especially on a local time scale (where we can often assume tempo to be almost constant). Using the formalism presented in III, we first present the following result since $T_n^* > 0$ :\
-$T^*_(n+1) = T_n^* (T^*_(n+1)) / T^*_n = T_n^* (Delta t_n) / (Delta t_(n+1)) (Delta b_(n+1)) / (Delta b_n)$\
+This first method aims at tracking tempo variation rather than actual values. Hence, we suppress the need for a convergence time. In fact, we search to estimate $alpha T^*$, where $alpha$ is an unknown multiplicative factor that we try to make constant over time.
+Using the formalism presented in III, we first present the following result since $T_n^* > 0$ :
+#nb_eq($T^*_(n+1) = T_n^* (T^*_(n+1)) / T^*_n = T_n^* (Delta t_n) / (Delta t_(n+1)) (Delta b_(n+1)) / (Delta b_n)$)
 
-Let $T_n$ be an estimation of $T_n^*$ by a certain given model and $alpha_n = T_n / T_n^*$. We obtain :\
+Let $T_n$ be an estimation of $T_n^*$ by a given model at a given time $t_n$ and $alpha_n = T_n / T_n^*$. We obtain
 $alpha_n T_(n+1)^* = underbrace(alpha_n T^*_n, T_n) (Delta t_n) / (Delta t_(n+1)) times (Delta b_(n+1)) / (Delta b_n)$\
 
-In the above formula, the only value to actually estimate is therefore $(b_(n+2) - b_(n+1)) / (b_(n+1) - b_n)$, where both the numerator and denumerator are translation permissive (i.e., we can afford a locally constant shift in both of our estimation), hence the resulting value is invariant by translation, or constant multiplication of our estimation. Furthermore, the value to be estimated only deals with symbolic units, meaning that we can use musical properties to find a consistent result. As a result, we can obtain a tempo estimation with the same multiplicative shift as the previous estimation $T_n$, thus, by using the formula recursively, we obtain a model that can track tempo variations over time without any need of convergence, and that is robust to tempo initialization, while using only local methods (in other words, the resulting model is @online). As noticed in the beginning of this section, symbolic value have some bindings that actually help to determine their values.\
+In the above formula, the only value to actually estimate is therefore $(b_(n+2) - b_(n+1)) / (b_(n+1) - b_n)$, which allow for a locally constant shift in both of our estimation of the numerator and denumerator). Hence the resulting value is invariant by translation, or constant multiplication of our estimation of $(b_n)$. Furthermore, this value only deals with symbolic units, meaning that we can apply musical properties to find a consistent result.\
+The point of this approach is to keep a constant factor between $(T_n)$ and $(T_n^*)$. We will then define $T_(n+1) = alpha_n T^*_(n+1)$, to find :\
+$(Delta b_(n+1)) / (Delta b_n) = (T_(n+1)^* Delta t_(n+1)) / (T_(n)^* Delta t_(n)) = (1/alpha_(n) T_(n+1)) / (1/alpha_n T_n) times (Delta t_(n+1)) / (Delta t_(n))$,\
+hence $(Delta b_(n+1)) / (Delta b_n) = T_(n+1) / T_n times (Delta t_(n+1)) / (Delta t_(n))$.\ \
 
-The point of this approach is to keep a constant factor between $(T_n)$ and $(T_n^*)$ in order to prevent the need for any convergence time. We will now define $T_(n+1) = alpha_n T^*_(n+1)$.\
-We then find : $(Delta b_(n+1)) / (Delta b_n) = (T_(n+1)^* Delta t_(n+1)) / (T_(n)^* Delta t_(n)) = (1/alpha_(n) T_(n+1)) / (1/alpha_n T_n) times (Delta t_(n+1)) / (Delta t_(n))$,\
-hence $(Delta b_(n+1)) / (Delta b_n) = T_(n+1) / T_n times (Delta t_(n+1)) / (Delta t_(n))$.\
+If we manage to estimate correctly $T_(n+1)$, we can obtain a tempo estimation with the same multiplicative shift as the previous estimation $T_n$, thus by using the formula recursively, we obtain a model that can track tempo variations over time without any need for convergence, hence being robust to irrelevant tempo initialization, while using only local methods (i.e., the resulting model is @online).\
 Let us then write the actual formula of the model :\
 #nb_eq($T_(n+1) / T_n = T^*_(n+1) / T^*_n = (Delta t_n) / (Delta t_(n+1)) underbrace(E(T_(n+1) / T_n times (Delta t_(n+1)) / (Delta t_(n))), display((Delta b_(n+1)) / (Delta b_n)))$) <estimator>
-where $E$, designated by _estimator_, is supposed to act on a theoretical ground as an oracle that returns the correct value of the symbolic $(Delta b_(n+1)) / (Delta b_n)$ from the given real values indicated in @estimator, therefore supposed to rarely match the theoretical values.\
+where $E$, designated by _estimator_, is supposed to act on a theoretical ground as an oracle that returns the correct value of the symbolic $(Delta b_(n+1)) / (Delta b_n)$ from the given real values indicated in @estimator. Actually, in practice, $E$ is a rhythmic quantizer.\
 
-Given an estimator $E$, the tempo value defined as $T_(n+1)$, computed from both $T_n$ and local data, is obtained _via_ the following equation, where $x$ represents $T_(n+1) / T_n$ in @estimator : \
+Given an estimator $E$, the tempo value defined as $T_(n+1)$, computed from both $T_n$ and local data, is obtained _via_ the following equation, where $x$ embodies $T_(n+1) / T_n$ in @estimator : \
 #nb_eq($T_(n+1) = T_n argmin_(x in [sqrt(2)/2 T_n, sqrt(2) T_n]) d(x, (Delta t_n) / (Delta t_(n+1)) E(x (Delta t_(n+1)) / (Delta t_(n)))) $) <estimatorf>
 where $d : a, b |-> k_*|log(a/b)|, k_* in RR_+^*,$ is a logarithmic distance, choosen since an absolute distance would have favor small values by triangle inequality in the following process.\
 Further explanations about @estimatorf can be found in @ann2.\ \
 
-In the implementation presented here, the estimator role is more to quantize the ratio in order to output a musically relevant value. In our test, we limited these quantizations to accept only regular division (i.e., powers of 2). Furthermore, the numerical resolution for the previous equation was done by a logarithmically evenly spaced search and favor $x$ values closer to 1 (i.e., $T_(n+1)$ closer to $T_n$) in case of distance equality.
-
+In the implementation presented here, the estimator role is to output a musically relevant value, given that the real durations contained micro-errors (that we call here @timing). In our tests, we limited these outputs to be regular division (i.e., powers of 2). Furthermore, the numerical resolution for the previous equation was done by a logarithmically evenly spaced search and favor $x$ values closer to 1 (i.e., $T_(n+1)$ closer to $T_n$) in case of distance equality.\
 Such a research allows for a musically explainable result : the current estimation is the nearest most probable tempo, and both halving and doubling the previous tempo is considered as improbable, and as further going from the initial tempo.
 
-== Study of the model <study_of_esti>
+== Formal study of the model <study_of_esti>
 
-Since this approach fundamentally search to estimate tempo variation rather than actual values, it is not easy to visualize the relevance of the result by naive means. We choose here to define $(alpha_n := T_n / T_n^*)_(n in [|1, N|])$ and $(tilde(alpha)_n := exp(ln(T_n / T_n^*) - floor(log_2 (T_n / T_n^*)) ln(2)))_(n in [|1, N|])$. $(tilde(alpha)_n)_(n in [|1, N|])$ is then called the _normalized_ sequence of ratio, where each value is uniquely determined within the range $ [1, 2[$. Such a choice allows for merging together the tempo octaves, as explained in @ann1. In this representation, we actually have $tilde(2) = tilde(1)$, and adding $tilde(1)$ is equivalent to multiply the initial value by $2$. We will now define a _spectrum_ $S = (tilde(alpha)_n)_(n in [|1, N|])$. We then call $|S|$ the value $N in NN$ and $cal(C)$ the range $[1, 2[$ seen as a circle according to the following application : $c : [1, 2[ &-> cal(C)(0, 1)\ x &|-> (cos(2pi x), sin(2pi x))$, so that $c(1) = c(2)$
+Since this approach fundamentally search to estimate tempo variation rather than actual values, it is not easy to visualize the relevance of the result by naive means. We choose here to define $(alpha_n := T_n / T_n^*)_(n in [|1, N|])$ and $(tilde(alpha)_n := exp(ln(alpha_n) - floor(log_2 (alpha_n)) ln(2)))_(n in [|1, N|])$. The latter is then called the _normalized_ sequence of ratio, where each value is uniquely determined within the range $[tilde(1), tilde(2)[$. Such a choice allows for merging together the tempo octaves, as explained in @ann1. One can notice that adding $tilde(1)$ to a normalized value is equivalent to multiplying the initial value by $2$.
+We now define a _spectrum_ $S = (tilde(alpha)_n)_(n in [|1, N|])$, and call $|S|$ the value $N in NN$. Finally, we define $cal(C)$ the range $[tilde(1), tilde(2)[$ seen as a circle according to the following application : $c : [tilde(1), tilde(2)[ &-> cal(C)(0, 1)\ tilde(x) &|-> (cos(2pi tilde(x)), sin(2pi tilde(x)))$, so that $c(tilde(1)) = c(tilde(2))$
 
-We then define the _measure_ of a spectrum $S$, that embodies a standard deviation on $cal(C)$, so that : #nb_eq[$m(S, Delta) = max_(tilde(d) in cal(C)) ( |{n in [|1, |S| |] : d(tilde(alpha)_n, tilde(d)) <= Delta}|) / (|S|)$]
-Where $Delta in [0, 1/2]$ embodies the measure accuracy, and $d$ is still a logarithmic distance, slightly modified on $cal(C)$ to be consistent with $d(tilde(1), tilde(2)) = 0$. Actually, it can be shown that on $cal(C)$, $d : tilde(a), tilde(b) |-> min(abs(tilde(a) - tilde(b)), 1 - abs(tilde(a) - tilde(b)))$.
+#definition[Let $S$ be a spectrum, and $Delta in [0, 1/2]$.\
+We define as follow the _measure_ of $S$ with imprecision $Delta$, that embodies a standard deviation on $cal(C)$ :
+#nb_eq[$m(S, Delta) = max_(tilde(d) in cal(C)) ( |{n in [|1, |S| |] : d(tilde(alpha)_n, tilde(d)) <= Delta}|) / (min(1, |S|))$]
+]
 
-The reader can verify that this measure is invariant with respect to spectrum rotation by any $lambda in R^*_+$ (i.e., $m(S, Delta) = m((tilde(lambda alpha)_n)_(n in [|1, N|]), Delta)$), and does not depend on the normalisation interval (here $[1, 2[$, but actually $[lambda, 2 lambda[$ would work just as well, with a different expression of $d$ on $cal(C)$). Finally, $0 <= m(S, Delta) <= 1$, and $m(S, Delta) = 0 <=> |S| = 0$, $m(S, Delta) = 1$ iff $S$ only contains values within a $2Delta$ range.
+Here $d$ is still a logarithmic distance, slightly modified on $cal(C)$ to be consistent with $d(tilde(1), tilde(2)) = 0$. Actually, it can be shown that on $cal(C)$, $d : tilde(a), tilde(b) |-> min(abs(tilde(a) - tilde(b)), 1 - abs(tilde(a) - tilde(b)))$.
 
-This measure allows to quantify the quality of this model, without considering tempo octaves, or equivalently to quantify the quality of the estimator. The C++ implementation of the measure used to obtain the following figures if available on #cite(<git>, form: "normal").
+#proposition[Let $Delta in [0, 1/2], lambda in RR^*_+$ and $S$ a spectrum.\
+Let $S'$ be the spectrum of the same initial values as $S$, but normalized within the interval $[tilde(lambda), tilde(2 lambda)[$ instead of $[tilde(1), tilde(2)[$.\
+Then :  $m(S', Delta) = m(S, Delta)$ and :\
+- $0 <= m(S, Delta) <= 1$
+- $m(S, Delta) = 0 <=> |S| = 0$
+- $m(S, Delta) = 1 <=> forall (tilde(a), tilde(b)) in S^2, d(tilde(a), tilde(b)) <= 2 Delta$
+]
 
-résultats sur (n-)Asap selon les périodes, les compositeurs, etc..., éventuellement en annexe ?
+This _measure_ allows to quantify the quality of this model, without considering tempo octaves, or equivalently to quantify the quality of the estimator. A C++ implementation of this measure is available on #cite(<git>, form: "normal"), as well as the detailled performance of our test model over the (n)-ASAP dataset. @estim-perf presents those results in a global display. The red values corresponds to the pieces written by W.A Mozart, that usually contain mainly regular division, and thus we expect to obtain a _measure_ closer to 1. On the other hands, the blue values corresponds to M. Ravel's pieces, much more rhythmically expressive, where we expect a _measure_ closer to 0. To understand the global results, we present in @estim-rand the same results for a random estimator.
+
+#figure(
+  image("../Figures/large_nc_version.png", width: 100%),
+  caption: [
+    Measure of the resulting spectrum over the whole (n)-ASAP dataset with $Delta = 0.075$\
+  ],
+) <estim-perf>
+
+#figure(
+  image("../Figures/large_nc_version.png", width: 100%),
+  caption: [
+    Measure of the resulting spectrums over the whole (n)-ASAP dataset with $Delta = 0.075$, with an estimator outputing random quantized values. We therefore consider typical values of this plot to be representative of an unacceptable spectrum, corresponding thus to an inadequate tempo curve.
+  ],
+) <estim-rand>
 
 == Towards a quantized approach <quanti>
 
-The previous model supposes the existence of an oracle, more or less correct in its predictions, that is actually a (partial) transcriber. In this section, we will focus on this transcribing part, by extending @romero-garcia_model_2022 model with the previous formalism. In fact, we extend the previous approach by considering the estimator as our central model and then extracting tempo values rather than the opposite.
+In this section, we extend the previous approach by considering the estimator as our central model and then extracting tempo values rather than the opposite, by extending @romero-garcia_model_2022 model with the previous formalism.
 
-Let $n in NN^*$ and $D subset (R^+)^n$ be a set of some durations of real time events. #cite(<romero-garcia_model_2022>, form: "normal") defined the continuous function $epsilon_D$ as :
+Let $n in NN^*$ and $D subset (R^+)^n$ be a set of some durations of real time events. The function $epsilon_D$ is defined by #cite(<romero-garcia_model_2022>, form: "normal") as :
 $ epsilon_D : a |-> max_(d in D) min_(m in ZZ) thick |d - m a| $
-This function is called the _transcription error_, and can be interpretated as maximum error (in real time unit) between all real events $d in D$ and theoretical real duration of $m a$, where $m$ is a symbolic notation expressed in arbitrary symbolic unit, and $a$ a real time value corresponding to a @tatum at a given tempo. We proove in @gonzalo_spectre that the set of all local maxima of $epsilon_D$, except those that also are minima, is : #nb_eq($M_D &= {d / (k+1/2), d in D, k in NN}\ &= limits(union.big)_(d in D) {d/(k+1/2), k in NN}$) <local_maxima>
-In fact, each of these local maxima corresponds to a change of the $m$ giving the minimum in the expression of $epsilon_D$, hence the following result : in-between two such successive local maxima, the quantization remains the same, i.e., 
+This continuous function is called the _transcription error_, and can be interpretated as maximum error (in RTU) between all real events $d in D$ and theoretical real duration $m a$, where $m$ is a symbolic notation expressed in arbitrary symbolic unit, and $a$ a real time value corresponding to a @tatum at a given tempo. We proove in @gonzalo_spectre that the set of all local maxima of $epsilon_D$, except those that also are minima, is : #nb_eq($M_D &= {d / (k+1/2), d in D, k in NN}\ &= limits(union.big)_(d in D) {d/(k+1/2), k in NN}$) <local_maxima>
+In fact, each of these local maxima corresponds to a change of the $m$ giving the minimum in the expression of $epsilon_D$, hence the following result : in-between two such successive local maxima, the quantization remains the same, i.e. @same_quantization.
 #proposition[Let $m_1, m_2$ be two successive local maxima of $epsilon_D$, $a_1 in ]m_1, m_2[, a_2 in [m_1, m_2], d in D$ and $m in ZZ$.\ Then $m in display(argmin_(k in ZZ)) |d - k a_1| => m in display(argmin_(k in ZZ)) |d - k a_2|$.] <same_quantization>
 
 With this property, we can then choose to consider only local minima of $epsilon_D$ as in #cite(<romero-garcia_model_2022>, form: "normal"), since there is exactly one local minima in-between two such successive local maxima, and choosing any other value in this range would result in the exact same transcription, with a higher error by definition of a local maxima (that is global on the considered interval). The correctness of the following algorithm to find all local minima within a given interval is proven in @gonzalo_spectre.
@@ -283,13 +303,13 @@ We obtain : $(a_1, a_2)$ is _consistent_ according to the consistency property.
 ]
 
 However, this restriction on $G$ appears to have some interest. Indeed, let $p$ a path in $G$ locally inconsistent, i.e., such that $a_1, a_2 in p$ so that $d in D$ is quantized differently according to $a_1$ and $a_2$, with $a_1$ and $a_2$ local minima of successive frames. We therefore have a two partial transcriptions of $d$ being either : $m_1$ at tempo $1/a_1$ and $m_2$ at tempo $1/a_2$, $m_1, m_2$ expressed in tatum unit, with $m_1 != m_2$.
-WHAT IS THE POINT ?
+WHY IS IT ABSURD ?
 == Quantization revised <quanti_revised>
 
 Let us define from now our tatum $epsilon = 1/60 ♩$, which correspond to an sixteenth note wrapped within a triplet within a quintuplet, and has the property that $1 " " epsilon \/ s = 1 " " ♩ \/ m$.\
 
 With our tatum defined, we can now choose to express all our symbolic units as multiple of this tatum, hence the unit for symbolic values is now $epsilon$. We then have : $T = (Delta b) / (Delta t) = (1 epsilon) / a$, where $a$ is the theoretical duration of $epsilon$ at tempo $T$.
-From there, we can define $sigma_D : a |->  1/a epsilon_D (a)$, the _normalized error_, or _symbolic error_, since it embodies the error between a transcription of $d in D$ as $m$ expressed in tatum, hence a quantized and valid transcription, and $d times 1/a = d times T$, which is the expression of the symbolic duration of $d$ at tempo $T$ according to the #link(<tempo_definition>, [definition of canonical tempo]).
+From there, we can define $sigma_D : a |->  1/a epsilon_D (a)$, the _normalized error_, or _symbolic error_, since it embodies the error between a transcription of $d in D$ as $m$ expressed in tatum, hence a quantized and valid transcription, and $d times 1/a = d times T$, which is the expression of the symbolic duration of $d$ at tempo $T$ according to @tempo_definition.
 
   - LR
   - bidi (2 passes: LR + RL) : justification (en annexe) : retour à la définition formelle de Tempo : valide dans les deux sens, d'où la possibilité de le faire en bidirectionnel + parler rapidement d'une application à Large
@@ -306,7 +326,7 @@ From there, we can define $sigma_D : a |->  1/a epsilon_D (a)$, the _normalized 
 
 = Applications
 
-== Data extension <data_gen>
+== A method for data augmentation <data_gen>
 
 Let $(t_n)_(n in NN), (T_n^*)_n(in NN), (T_n)_(n in NN)$ be respectively a performance, a canonical tempo for this performance, an estimated tempo curve (supposed to be flattened with respect to the canonical tempo) and $T_c in R^*_+$ a given tempo value. We define $(s_n := Delta t_n (T_n - T_n^*))_(n in NN)$ the symbolic shift of the performance according to $(T_n^*)$ and $(T_n)$. The _normalized_ performance to tempo $T_c$ of $(t_n)$ is then defined as :\
 #nb_eq($hat(t)_0 = t_0, forall n in NN, hat(t)_(n+1) = hat(t)_n + underbrace(Delta t_n T_n^* / T_c, alpha_n) + underbrace(s_n / T_c, beta_n)$)
@@ -320,6 +340,9 @@ Depending on the use of this data, one can choose to adapt the definition os $(s
 - génération de données "performance" : pour data augmentation ou test robustesse (fuzz testing)
   aplanissement de tempo
   démo MIDI?
+
+
+== Generated performances thanks to the previous method
 
 - transcription MIDI par parsing : pre-processing d'évaluation tempo (approche partie 4)
 
@@ -580,6 +603,13 @@ On en déduit la correction de @algonzalo.
         key:"cadence",
         short:"cadence",
         desc:"",
+        group:"Definitions"
+      ),
+
+      (
+        key:"quantization",
+        short:"quantization",
+        desc:[We consider here rhythm quantization, i.e., a way to find a rational number expressed in @mtu from the real events durations in @rtu, based on specific musical properties of time division. Indeed, in symbolic rhythmic notations of music, every single event can be expressed as a multiple of a certain unit called a @tatum, usually expressed in @beat. Then, the rhythm quantization consists in expressing each real event of a given performance, or rather its duration, as an integer. This integer is to be interpretated as the value of the duration, expressed in tatum converted to RTU. Hence, rythm quantization is equivalent to tempo inference, as explained in @quanti_revised],
         group:"Definitions"
       ),
 
