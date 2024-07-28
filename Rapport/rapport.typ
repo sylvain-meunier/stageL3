@@ -223,54 +223,42 @@ Given an estimator $E$, the tempo value defined as $T_(n+1)$, computed from both
 where $d : a, b |-> k_*|log(a/b)|, k_* in RR_+^*,$ is a logarithmic distance, choosen since an absolute distance would have favor small values by triangle inequality in the following process.\
 Further explanations about @estimatorf can be found in @ann2.\ \
 
-In the implementation presented here, the estimator role is to output a musically relevant value, given that the real durations contained micro-errors (that we call here @timing). In our tests, we limited these outputs to be regular division (i.e., powers of 2). Furthermore, the numerical resolution for the previous equation was done by a logarithmically evenly spaced search and favor $x$ values closer to 1 (i.e., $T_(n+1)$ closer to $T_n$) in case of distance equality.\
+In the implementation presented here, the estimator role is to output a musically relevant value, given that the real durations contained micro-errors (that we call here @timing). In our tests, we limited these outputs to be either regular divisions (i.e., powers of 2), or #gls("triplet", display: "triplets"). Furthermore, the numerical resolution for the previous equation was done by a logarithmically evenly spaced search and favor $x$ values closer to 1 (i.e., $T_(n+1)$ closer to $T_n$) in case of distance equality.\
 Such a research allows for a musically explainable result : the current estimation is the nearest most probable tempo, and both halving and doubling the previous tempo is considered as improbable, and as further going from the initial tempo.
 
-== Formal study of the model <study_of_esti>
+#figure(
+  image("../Figures/sonata-11.png", width: 100%),
+  caption: [
+    The first measures of Piano Sonata No. 11 in A Major (K. 331: III), W.A Mozart.
+  ],
+)\
 
-Since this approach fundamentally search to estimate tempo variation rather than actual values, it is not easy to visualize the relevance of the result by naive means. We choose here to define $(alpha_n := T_n / T_n^*)_(n in [|1, N|])$ and $(tilde(alpha)_n := exp(ln(alpha_n) - floor(log_2 (alpha_n)) ln(2)))_(n in [|1, N|])$. The latter is then called the _normalized_ sequence of ratio, where each value is uniquely determined within the range $[tilde(1), tilde(2)[$. Such a choice allows for merging together the tempo octaves, as explained in @ann1. One can notice that adding $tilde(1)$ to a normalized value is equivalent to multiplying the initial value by $2$.
-We now define a _spectrum_ $S = (tilde(alpha)_n)_(n in [|1, N|])$, and call $|S|$ the value $N in NN$. Finally, we define $cal(C)$ the range $[tilde(1), tilde(2)[$ seen as a circle according to the following application : $c : [tilde(1), tilde(2)[ &-> cal(C)(0, 1)\ tilde(x) &|-> (cos(2pi tilde(x)), sin(2pi tilde(x)))$, so that $c(tilde(1)) = c(tilde(2))$
-
-#definition[Let $S$ be a spectrum, and $Delta in [0, 1/2]$.\
-We define as follow the _measure_ of $S$ with imprecision $Delta$, that embodies a standard deviation on $cal(C)$ :
-#nb_eq[$m(S, Delta) = max_(tilde(d) in cal(C)) ( |{n in [|1, |S| |] : d(tilde(alpha)_n, tilde(d)) <= Delta}|) / (min(1, |S|))$]
-]
-
-Here $d$ is still a logarithmic distance, slightly modified on $cal(C)$ to be consistent with $d(tilde(1), tilde(2)) = 0$. Actually, it can be shown that on $cal(C)$, $d : tilde(a), tilde(b) |-> min(abs(tilde(a) - tilde(b)), 1 - abs(tilde(a) - tilde(b)))$.
-
-#proposition[Let $Delta in [0, 1/2], lambda in RR^*_+$ and $S$ a spectrum.\
-Let $S'$ be the spectrum of the same initial values as $S$, but normalized within the interval $[tilde(lambda), tilde(2 lambda)[$ instead of $[tilde(1), tilde(2)[$.\
-Then :  $m(S', Delta) = m(S, Delta)$ and :\
-- $0 <= m(S, Delta) <= 1$
-- $m(S, Delta) = 0 <=> |S| = 0$
-- $m(S, Delta) = 1 <=> forall (tilde(a), tilde(b)) in S^2, d(tilde(a), tilde(b)) <= 2 Delta$
-]
-
-This _measure_ allows to quantify the quality of this model, without considering tempo octaves, or equivalently to quantify the quality of the estimator. A C++ implementation of this measure is available on #cite(<git>, form: "normal"), as well as the detailled performance of our test model over the (n)-ASAP dataset. @estim-perf presents those results in a global display. The red values corresponds to the pieces written by W.A Mozart, that usually contain mainly regular division, and thus we expect to obtain a _measure_ closer to 1. On the other hands, the blue values corresponds to M. Ravel's pieces, much more rhythmically expressive, where we expect a _measure_ closer to 0. To understand the global results, we present in @estim-rand the same results for a random estimator.
+@estim-perf-1 compares the tempo curve obtained by our naive estimator (here almost correctly initialized to simplify the interpretation of the result) and the canonical tempo. One can notice that the constant distance between the two curves indicates in our logarithmic scale a constant multiplicative factor. The tempo values are here normalized in the range $[1, 2[$, to prevent the effects of _tempo octaves_. @ann2 presents a formal study of this model.
 
 #figure(
-  image("../Figures/large_nc_version.png", width: 100%),
+  image("../Figures/estimator_mozart_4.png", width: 100%),
   caption: [
-    Measure of the resulting spectrum over the whole (n)-ASAP dataset with $Delta = 0.075$\
+    Normalized canonical tempo and estimation according to the model presented here for the first measures of Piano Sonata No. 11 in A Major (K. 331: III), W.A Mozart.
   ],
-) <estim-perf>
-
-#figure(
-  image("../Figures/large_nc_version.png", width: 100%),
-  caption: [
-    Measure of the resulting spectrums over the whole (n)-ASAP dataset with $Delta = 0.075$, with an estimator outputing random quantized values. We therefore consider typical values of this plot to be representative of an unacceptable spectrum, corresponding thus to an inadequate tempo curve.
-  ],
-) <estim-rand>
+) <estim-perf-1>
 
 == Towards a quantized approach <quanti>
 
-In this section, we extend the previous approach by considering the estimator as our central model and then extracting tempo values rather than the opposite, by extending @romero-garcia_model_2022 model with the previous formalism.
+In this section, we extend the previous approach by considering the estimator as our central model and only then extracting tempo values rather than the opposite. We based our work on @romero-garcia_model_2022 model with the previous formalism.
 
 Let $n in NN^*$ and $D subset (R^+)^n$ be a set of some durations of real time events. The function $epsilon_D$ is defined by #cite(<romero-garcia_model_2022>, form: "normal") as :
 $ epsilon_D : a |-> max_(d in D) min_(m in ZZ) thick |d - m a| $
 This continuous function is called the _transcription error_, and can be interpretated as maximum error (in RTU) between all real events $d in D$ and theoretical real duration $m a$, where $m$ is a symbolic notation expressed in arbitrary symbolic unit, and $a$ a real time value corresponding to a @tatum at a given tempo. We proove in @gonzalo_spectre that the set of all local maxima of $epsilon_D$, except those that also are minima, is : #nb_eq($M_D &= {d / (k+1/2), d in D, k in NN}\ &= limits(union.big)_(d in D) {d/(k+1/2), k in NN}$) <local_maxima>
 In fact, each of these local maxima corresponds to a change of the $m$ giving the minimum in the expression of $epsilon_D$, hence the following result : in-between two such successive local maxima, the quantization remains the same, i.e. @same_quantization.
 #proposition[Let $m_1, m_2$ be two successive local maxima of $epsilon_D$, $a_1 in ]m_1, m_2[, a_2 in [m_1, m_2], d in D$ and $m in ZZ$.\ Then $m in display(argmin_(k in ZZ)) |d - k a_1| => m in display(argmin_(k in ZZ)) |d - k a_2|$.] <same_quantization>
+
+#corollary[Let $d in D, a in RR^*_+, A = limits(argmin)_(k in ZZ) |d - k a|$.\
+Then : $0 < |A| <= 2$ and $|A| = 2 <=> a in M_D$.] <card_A>
+
+#proof[$A subset {floor(d/a), floor(d/a) + 1}$, $limits(lim)_(|k| -> +infinity) |d - k a| = +infinity$, hence $A != emptyset$.
+Finally, let $k = floor(d/a)$ :\ $|A| = 2 &<=> A = {floor(d/a), floor(d/a) + 1}\
+&<=> |d - k a| = |d - (k+1) a| = 1/2\
+&<=> a = d/(k + 1/2) <=> a in M_D$]
 
 With this property, we can then choose to consider only local minima of $epsilon_D$ as in #cite(<romero-garcia_model_2022>, form: "normal"), since there is exactly one local minima in-between two such successive local maxima, and choosing any other value in this range would result in the exact same transcription, with a higher error by definition of a local maxima (that is global on the considered interval). The correctness of the following algorithm to find all local minima within a given interval is proven in @gonzalo_spectre.
 
@@ -288,7 +276,7 @@ pseudocode-list(booktabs: true, hooks: .5em, title: [FindLocalMinima($D != empty
   + *return* $"localMinima"$
 ]) <algonzalo>
 
-@romero-garcia_model_2022 then defined $G = (V, E)$ a graph whose vertices are the local minima of $epsilon_D$ with $D$ a sliding window, or _frame_, on a given performance, and whose edges are so that they can guarantee a _consistency property_, explained hereafter.
+#cite(<romero-garcia_model_2022>, form: "normal") then defined $G = (V, E)$ a graph whose vertices are the local minima of $epsilon_D$ with $D$ a sliding window, or _frame_, on a given performance, and whose edges are so that they can guarantee a _consistency property_, explained hereafter.
 
 The _consistency property_ for two tatums $a_1, a_2$ specifies that, if $F_sect$ is the set of all values in common between two successive frame, for all $d in F_sect$, $d$ is quantized the same way according to the tatum $a_1$ and $a_2$, i.e., the symbolic value of $d$ is the same when considering either $a_1$ of $a_2$ as the duration of the same given tatum at some tempo (respectively $1/a_1$ and $1/a_2$ as shown in @quanti_revised). From these definitions, we can now define a _tempo curve_ as a path in $G$. In fact, #cite(<romero-garcia_model_2022>, form: "normal") call such a path a _transcription_ rather than a tempo curve, but since an exact tempo curve would be $(T_n^*)$, those two problems are actually equivalent.
 
@@ -298,31 +286,80 @@ Actually, the consistency property is not that restrictive when considering temp
 - $a_2$ a local minima of $epsilon_F_2$ in the range $]m_1, m_2[$, which exists since $m_1$ and $m_2$ are local maxima (that are not local minima).
 We obtain : $(a_1, a_2)$ is _consistent_ according to the consistency property.
 
-#corollary[
-  The _consistency property_ only implies restrictions relative to the interval of research. In other words, any given strictly partial path $p$ in $G$ can be extended, even if it means considering a bigger interval, for any given performance, and any given frame length for defining $G$.
+#corollary(numbering: none)[
+  The _consistency property_ only implies restrictions relative to the interval of research. In other words, any given strictly partial path $p$ in $G$ can be extended, even if it means considering a bigger interval, for any given performance, and any given frame length used to define $G$.
 ]
 
-However, this restriction on $G$ appears to have some interest. Indeed, let $p$ a path in $G$ locally inconsistent, i.e., such that $a_1, a_2 in p$ so that $d in D$ is quantized differently according to $a_1$ and $a_2$, with $a_1$ and $a_2$ local minima of successive frames. We therefore have a two partial transcriptions of $d$ being either : $m_1$ at tempo $1/a_1$ and $m_2$ at tempo $1/a_2$, $m_1, m_2$ expressed in tatum unit, with $m_1 != m_2$.
-WHY IS IT ABSURD ?
+#remark[This approach supposes that we can define a tatum within all frames. Ie that there is a real value of the same tatum that can maintain a single value within the frame. In other words, let $a$ be the symbolic value of a tatum, and $n in NN, F = {f_1, ..., f_n}$ a given frame. If we suppose all the events of F to embody a musical meaning, we can define an immediate tempo for each of them, and therefore we can express $a_i$ the value of $a$ in RTU at the tempo $t_i$ corresponding to $f_i$, $i in [|1, n|]$. In order for this approach to be meaningful, we then need the existence of $hat(a) in RR^*_+$ so that, each $f_i$ is quantized the same way according to $a_i$ and $hat(a)$. Since, by definition, $f_i$ is quantized by $f_i times t_i$, we obtain the following definition.
+] <tatum_exist>
+
+#definition[With the notations introduced in @tatum_exist, a tatum $a in RR^*_+$ is said to have an actual meaning with respect to a frame $F = {f_1, ..., f_(|F|)}$ when, for all $i in [|1, |F| |], f_i times t_i in limits(argmin)_(k in ZZ) (f_i - k hat(a))$.
+]
+
+#remark(numbering: none)[When $t_i = t$ for all $i in [|1, |F| |]$, we have : $1/t$ has an actual meaning with respect to $F$. Indeed, let $i in [|1, |F| |]$.\
+Since $t_i = t$, we have $f_i t in NN$ MTU, when expressing symbolic values in tatum.\ Therefore, since $limits(min)_(k in ZZ) (f_i - k/t) = 1/t limits(min)_(k in ZZ) (t (f_i - k/t))$, we obtain : $limits(argmin)_(k in ZZ) (f_i - k/t) = limits(argmin)_(k in ZZ) (t (f_i - k/t)) = limits(argmin)_(k in ZZ) (f_i t - k) = {f_i t}$]\
+
+Let $p$ be a path in $G$ locally inconsistent, i.e., such that there are $a_1, a_2 in p$ so that $d in D$ is quantized differently according to $a_1$ and $a_2$, with $a_1$ and $a_2$ local minima of successive frames. We therefore have a two partial transcriptions of $d$ being either : $m_1$ at tempo $1/a_1$ and $m_2$ at tempo $1/a_2$, both expressed in tatum unit, with $m_1 != m_2$. By hypothesis of our model, both $a_1$ and $a_2$ have an actual meaning within their respective frame $F_1$ and $F_2$.
+Let $A_i = limits(argmin)_(k in ZZ) (d - k a_i), i in {1, 2}$, $A = A_1 sect A_2$ and $t$ be the canonical tempo corresponding to $d$ according to a correct transcription of the given performance. Thanks to @card_A, we know that $|A_i| >= 2$ iff $a_i$ is a local maxima, which is absurd in our case, since both $a_1$ and $a_2$ are local minima and not local maxima. Hence, $|A_i| = 1$. Moreover, by definition, $t d in A$, hence $A != emptyset$, hence $A_1 = A_2$.
+Since $m_1 in A_1, m_2 in A_2$, both correspond to the same value, possibly express in different MTU. However, by definition, they both are expressed in tatum unit, since $a_1$ and $a_2$ embody a RTU value for the same tatum. Finally $m_1 = m_2$.
+
 == Quantization revised <quanti_revised>
 
-Let us define from now our tatum $epsilon = 1/60 ♩$, which correspond to an sixteenth note wrapped within a triplet within a quintuplet, and has the property that $1 " " epsilon \/ s = 1 " " ♩ \/ m$.\
+We define $m_D$ to be the set of all the local minima that are not local maxima of $epsilon_D$.
+
+Let us define from now on our tatum $epsilon = 1/60 ♩$, which correspond to an sixteenth note wrapped within a triplet within a quintuplet, and has the property that $1 " " epsilon \/ s = 1 " " ♩ \/ m$.\
 
 With our tatum defined, we can now choose to express all our symbolic units as multiple of this tatum, hence the unit for symbolic values is now $epsilon$. We then have : $T = (Delta b) / (Delta t) = (1 epsilon) / a$, where $a$ is the theoretical duration of $epsilon$ at tempo $T$.
 From there, we can define $sigma_D : a |->  1/a epsilon_D (a)$, the _normalized error_, or _symbolic error_, since it embodies the error between a transcription of $d in D$ as $m$ expressed in tatum, hence a quantized and valid transcription, and $d times 1/a = d times T$, which is the expression of the symbolic duration of $d$ at tempo $T$ according to @tempo_definition.
 
-  - LR
-  - bidi (2 passes: LR + RL) : justification (en annexe) : retour à la définition formelle de Tempo : valide dans les deux sens, d'où la possibilité de le faire en bidirectionnel + parler rapidement d'une application à Large
-  - RT : avec valeur initiale de tempo
+#definition[Let $f : A -> RR$ be a function with $A$ a countable set. $a in A$ is said to be a local minima of $f$ when, there exists $eta in RR^*_+$ so that, for all $a' in Eta = {h in A : |a - h| <= eta}$, $f(a) <= f(a')$ and $sup(Eta) > a > inf(Eta)$.]
 
-== résultats évaluation (comparaison avec 3)
+In order to reduce the amount of local minima considered during a computation, we propose the following conditions on a local minima $a$ of $epsilon_D$, where $m = {a' in m_D : a' >= a}$  :
++ $forall a' in m, epsilon_D (a) <= epsilon_D (a')$
++ $forall a' in m, sigma_D (a) <= sigma_D (a')$
++ $a$ is a local minima of $lambda_1 : x in m_D |-> epsilon_D (x)$
++ $a$ is a local minima of $lambda_2 : x in m_D |-> sigma_D (x)$
+
+We have : $2 => 1$ and $4 => 3$, hence one can only consider conditions $2$ and $4$.
+
+We present here a modified version of #cite(<romero-garcia_model_2022>, form: "normal") presented in the previous section. We define similarly a graph $G = (V, E)$, with the relaxation that the edges no longer guarantee the consistency property. In order to define our tempo curves, we then sequentially define paths in $G$ according to the following process, where $d$ is a logarithmic distance, $P$ is the set of all possible paths, and $A_n$ the set of all local minima of $epsilon_F_n$ ; $F_n$ being the n-th frame.
 
 #figure(
-  image("../Figures/Spectrogram/Mozart_inverted.png", width: 100%),
+  kind: "algorithm",
+  supplement: [Algorithm],
+pseudocode-list(booktabs: true, hooks: .5em, title: [FindPotentialPaths(performance, frame_length, start, end) :])[
+  + $F_1 <- {p_i in "performance", i in [| 1, "frame_length" |]}$
+  + $P <- "FindLocalMinima"(F_1, "start", "end")$
+  + *for* $n$ corresponding to a frame :
+    + $F_n <- {p_(n+i) in "performance", i in [| 1, "frame_length" |]}$
+    + $A_n <- "FindLocalMinima"(F_n, "start", "end")$
+    + *for* all path $p = (p_1, ..., p_n)$ in P :
+      + $p_(n+1) <- limits(argmin)_(a in A_n) d(p_n, a)$
+      + $p <- (p_1, ..., p_n, p_(n+1))$
+  + *return* $P$
+])
+
+We thus obtain the potential tempo curves presented in @quanti_curves, where the y-axis represents tempo, and is linear between ♩ = 40 (bottom) and ♩ = 240 (top). Considering we only extend previously existing paths, without creating new, we see some path convergence, i.e., the merging of two paths into one. In this case, we end up with only 4 potential paths, whereas we started with over a thousand. The x-axis corresponds to the index of each events in the performance, hence it does not contain any information regarding actual time. Such a representation allows for displaying results over a whole performance, instead of extracts. 
+
+#figure(
+  image("../Figures/Spectrogram/Mozart_inverted.png", width: 80%),
   caption: [
-    All potentials tempo curves found by a quantized approach for a performance of Piano Sonata No. 11 in A Major (K. 331: III), W.A Mozart. The tempo scale is linear between ♩ = 40 (bottom) and ♩ = 240 (top)
+    All potentials tempo curves found by a quantized approach for a performance of Piano Sonata No. 11 in A Major (K. 331: III), W.A Mozart.
   ],
-)
+) <quanti_curves>
+
+@gonzalo_spectre presents some figures displaying the results of this approach. In order to output a single curve, we have to select a single path as previously defined, and here we choose to select the path whose first tatum value corresponds to a tempo that is the nearest to a given tempo, according to $d$.
+
+#definition[Correct tempo curve]
+
+#proposition[The correct tempo curve is within the graph]
+
+Under the hypothesis that ..., we can do a bidir and define a fix point.
+- bidi (2 passes: LR + RL) : justification (en annexe) : retour à la définition formelle de Tempo : valide dans les deux sens, d'où la possibilité de le faire en bidirectionnel
+
+#proposition[The correct tempo curve is a fix point]
+
+== résultats évaluation (comparaison avec 3)
 
 = Applications
 
@@ -341,12 +378,11 @@ Depending on the use of this data, one can choose to adapt the definition os $(s
   aplanissement de tempo
   démo MIDI?
 
-
 == Generated performances thanks to the previous method
 
 - transcription MIDI par parsing : pre-processing d'évaluation tempo (approche partie 4)
 
-
+- Large avec bidir
 
 - analyse "musicologique" quantitative de performances humaines de réf. (à la Mazurka BL)
   données quantitives de tempo et time-shifts
@@ -354,6 +390,7 @@ Depending on the use of this data, one can choose to adapt the definition os $(s
 = Conclusion & perspectives <conclusion>
 
 - intégration pour couplage avec transcription par parsing (+ plus court chemin multi-critère)
+- Real time (quanti)
 - @quanti_revised presented a model which appear to share some similarities with @large_dynamics_1999 as a score-based approach. Therefore, studying the formalism for a quantizer might allow to obtain some theoretical results for the previous model, regarding for instance convergence guarantee and meaningfulness of the result.
 
 - usage in performance generation with @data_gen and #cite(<Kosta2016Mapping>)
@@ -447,8 +484,46 @@ One can notice that these tempo curves are quite similar, and in fact, a human b
   [#figure(image("../Figures/tempo_distance.png", width: 100%), caption: [Tempo distance (s)]) <tempo_distance>], figure(image("../Figures/tempo_distance2.png", width: 100%), caption: [Tempo distance (log)])
 )
 
-Tempo distance between the two previous curves. Being able to differentiate them would imply to tell apart two rhythmic events within 4 ms, which is suppose impossible for a humain being according to the value of $epsilon$ defined (and displayed as the top line in @tempo_distance) in @formal_consider.
+Tempo distance between the two previous curves. Being able to differentiate them would imply to tell apart two rhythmic events within 4 ms, which is supposed impossible for a humain being according to the value of $epsilon$ defined (and displayed as the top line in @tempo_distance) in @formal_consider.
 ]) <ann2>
+
+== Formal study of the model <study_of_esti>
+
+Since this approach fundamentally search to estimate tempo variation rather than actual values, it is not easy to visualize the relevance of the result by naive means. We choose here to define $(alpha_n := T_n / T_n^*)_(n in [|1, N|])$ and $(tilde(alpha)_n := exp(ln(alpha_n) - floor(log_2 (alpha_n)) ln(2)))_(n in [|1, N|])$. The latter is then called the _normalized_ sequence of ratio, where each value is uniquely determined within the range $[tilde(1), tilde(2)[$. Such a choice allows for merging together the tempo octaves, as explained in @ann1. One can notice that adding $tilde(1)$ to a normalized value is equivalent to multiplying the initial value by $2$.
+We now define a _spectrum_ $S = (tilde(alpha)_n)_(n in [|1, N|])$, and call $|S|$ the value $N in NN$. Finally, we define $cal(C)$ the range $[tilde(1), tilde(2)[$ seen as a circle according to the following application : $c : [tilde(1), tilde(2)[ &-> cal(C)(0, 1)\ tilde(x) &|-> (cos(2pi tilde(x)), sin(2pi tilde(x)))$, so that $c(tilde(1)) = c(tilde(2))$
+
+#definition[Let $S$ be a spectrum, and $Delta in [0, 1/2]$.\
+We define as follow the _measure_ of $S$ with imprecision $Delta$, that embodies a standard deviation on $cal(C)$ :
+#nb_eq[$m(S, Delta) = max_(tilde(d) in cal(C)) ( |{n in [|1, |S| |] : d(tilde(alpha)_n, tilde(d)) <= Delta}|) / (min(1, |S|))$]
+]
+
+Here $d$ is still a logarithmic distance, slightly modified on $cal(C)$ to be consistent with $d(tilde(1), tilde(2)) = 0$. Actually, it can be shown that on $cal(C)$, $d : tilde(a), tilde(b) |-> min(abs(tilde(a) - tilde(b)), 1 - abs(tilde(a) - tilde(b)))$.
+
+#proposition[Let $Delta in [0, 1/2], lambda in RR^*_+$ and $S$ a spectrum.\
+Let $S'$ be the spectrum of the same initial values as $S$, but normalized within the interval $[tilde(lambda), tilde(2 lambda)[$ instead of $[tilde(1), tilde(2)[$.\
+Then :  $m(S', Delta) = m(S, Delta)$ and :\
+- $0 <= m(S, Delta) <= 1$
+- $m(S, Delta) = 0 <=> |S| = 0$
+- $m(S, Delta) = 1 <=> forall (tilde(a), tilde(b)) in S^2, d(tilde(a), tilde(b)) <= 2 Delta$
+]
+
+This _measure_ allows to quantify the quality of this model, without considering tempo octaves, or equivalently to quantify the quality of the estimator. A C++ implementation of this measure is available on #cite(<git>, form: "normal"), as well as the detailled performance of our test model over the (n)-ASAP dataset. @estim-perf presents those results in a global display. The blue values corresponds to the pieces written by W.A Mozart, that usually contain mainly regular division, and thus are expected to produce a _measure_ closer to 1 than average. On the other hand, the red values corresponds to M. Ravel's pieces, much more rhythmically expressive, hence we expect a _measure_ closer to 0. To understand the global results, we present in @estim-rand the same results for a random estimator.
+
+#figure(
+  image("../Figures/estim_perf.png", width: 100%),
+  caption: [
+    Measures of the resulting spectrum over the whole (n)-ASAP dataset with $Delta = 0.075$, with naive estimator.
+  ],
+) <estim-perf>
+
+#figure(
+  image("../Figures/random_estim_perf.png", width: 100%),
+  caption: [
+    Measures of the resulting spectrums over the whole (n)-ASAP dataset with $Delta = 0.075$, with an estimator outputing random quantized values.
+  ],
+) <estim-rand>
+
+@estim-perf shows results indicating that our naive estimator performs well on pieces with regular division and small tempo changes, which is typically the style of the classical era. The random estimator could actually output regular division, and to a lesser extent triplets (with a lower probability). Hence, it performed better than the naive one for a few pieces, especially those containing such irregular divisions. Finally, our naive estimator has $34.2 %$ of its value strictly over its average, whereas this value is $27.6 %$ for the random estimator.
 
 #appendix([Quantized Model], [
 
