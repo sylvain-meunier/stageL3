@@ -55,17 +55,17 @@ def canonical(score, perf, n, default=120):
 def th_delta(t1, t2):
     return abs(1 / t1 - 1/t2)
 
-
-def plot_castle():
-    #plt.rcParams['axes.facecolor'] = 'gray'
-
-    size = 35
+def biglabels(size=35):
     params = {'legend.fontsize': size,
         'axes.labelsize': size,
         'axes.titlesize':size,
         'xtick.labelsize':20,
         'ytick.labelsize':20}
     pylab.rcParams.update(params)
+
+def plot_castle():
+    #plt.rcParams['axes.facecolor'] = 'gray'
+    biglabels()
 
     perf = [1.757, 2.330, 2.534, 2.924, 3.296, 3.669, 4.080, 4.649, 4.846, 5.274, 5.650, 6.013, 6.424]
     t1 = [1, 2.5, 3, 4, 5, 6, 7, 8.5, 9, 10, 11, 12, 13]
@@ -90,4 +90,40 @@ def plot_castle():
     plt.legend()
     plt.show()
 
-plot_castle()
+def plot_3(path, blue="Mozart", red="Ravel"):
+    biglabels()
+
+    fig, ax = plt.subplots()
+    values = []
+    reds = []
+    blues = []
+    with open(path, 'r') as f:
+        for line in f:
+            color = "gray"
+            piece, measure = line.split(',')
+            measure = eval(str(measure)[:5])
+            composer = piece.split('/')[4]
+            if composer == blue:
+                blues.append(measure)
+                color = "blue"
+                ax.axvline(x=measure, color=color, lw=8, alpha=0.3)
+            elif composer == red:
+                reds.append(measure)
+                color = "red"
+                ax.axvline(x=measure, color=color, lw=8, alpha=0.3)
+            values.append(measure)
+    values.sort()
+    plt.yscale("log")
+    plt.hist(values, color="gray", bins=100)
+
+    avg = np.mean(values)
+    med = np.median(values)
+    ax.axvline(x=avg, linestyle='--', color="black", lw=3, alpha=0.8, label="Mean")
+    ax.axvline(x=med, linestyle=':', color="black", lw=4, alpha=0.8, label="Median")
+
+    print(len([v for v in values if v > avg]) / len(values) * 100)
+    plt.legend()
+    plt.show()
+
+
+#plot_3('./Performance/performance_075.txt')
