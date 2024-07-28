@@ -3,7 +3,7 @@ import scipy
 import numpy as np
 import scipy.special
 from util import EPSILON
-from py_measure import cpp_measure
+#from py_measure import cpp_measure
 from kappa import kappa_list, kappa_table
 from quantization import find_local_minima, error
 import random as rand
@@ -546,7 +546,7 @@ def find_minimal_integer_ratio(ratio, precision=0.0001):
     return 1
 
 class Estimator():
-    def __init__(self, accuracy=1800, limit=4/3, eq_test=0.0001) -> None:
+    def __init__(self, accuracy=500, limit=np.sqrt(2), eq_test=0.0001) -> None:
         """ naive version : no memory """
         self.accuracy = accuracy
         self.limit = limit
@@ -576,7 +576,7 @@ class Estimator():
                 b = 2**t
                 best_try = self.new_best(best_try, b, self.dist(a, b))
 
-        # Test if 3*a is a power of 2 (triolet, but not only)
+        # Test if 3*a is a power of 2 (triplet, but not only)
         log2 = np.floor(np.log2(3*a))
         for t in (log2, log2+1):
             if abs(t) <= 2 and 0:
@@ -597,7 +597,9 @@ class Estimator():
             if i == 0:
                 values = (1,)
             else:
-                values = (1 + self.dt * i, 1 - (self.dt*i))
+                v1 = 1 + self.dt * i
+                v2 = 1/v1 # Evenly spaced search
+                values = (v1, v2)
             for v in values:
                 dist_to_solution = self.dist(v, t1 * self.E(v*t2))
                 best_try = self.new_best(best_try, v, dist_to_solution)
@@ -611,7 +613,13 @@ class Estimator():
 
 
 class RandomEstimator(Estimator):
-    def __init__(self, accuracy=1800, limit=4 / 3, eq_test=0.0001, reg_p = 5) -> None:
+    def find_solution(self, d1, d2, debug=0):
+        c1 = rand.random() * (self.limit - 1)
+        c2 = 1/c1
+        return rand.choice([c1, c2])
+
+class SmartRandomEstimator(Estimator):
+    def __init__(self, accuracy=250, limit=np.sqrt(2), eq_test=0.0001, reg_p = 5) -> None:
         super().__init__(accuracy, limit, eq_test)
         self.poss = [2**i for i in range(-4, 5)] * reg_p # Common regular division
         self.poss += [3**i for i in range(-3, 4)]
