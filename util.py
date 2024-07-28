@@ -101,6 +101,7 @@ def get_matching_from_txt(midi_path, separate_hands=False):
 
     result_matching = []
     _, alignment = pt.load_match(path + "match", create_score=False)
+    alignment.sort(key = lambda x: midi[x['performance_id']]["onset_sec"] if x['label'] == 'match' else -1)
     for matching in alignment:
         if matching["label"] != "match":
             continue
@@ -108,7 +109,7 @@ def get_matching_from_txt(midi_path, separate_hands=False):
         xml_id = matching["score_id"]
         xml_note = xml[xml_id]
         midi_note = midi[midi_id]
-        if len(result_matching) == 0 or abs(midi_note["onset_sec"] - result_matching[-1][1]["onset_sec"] > EPSILON and xml_note["onset_beat"] - result_matching[-1][0]["onset_beat"] > EPSILON/10):
+        if len(result_matching) == 0 or (midi_note["onset_sec"] - result_matching[-1][1]["onset_sec"] > EPSILON and xml_note["onset_beat"] > result_matching[-1][0]["onset_beat"]):
             result_matching.append((xml_note, midi_note))
 
     if separate_hands:
@@ -145,8 +146,8 @@ def find_recursive(l, current_path, rec=False):
             if not "." in f:
                 find_recursive(l, current_path + '/' + f, rec=rec)
 
-def fit_matching(inp, unit="beat"):
-    return [(score_note["onset_" + unit], real_note["onset_sec"]) for score_note, real_note in inp]
+def fit_matching(inp, type="onset", unit="beat"):
+    return [(score_note[type + "_" + unit], real_note[type + "_sec"]) for score_note, real_note in inp]
 
 def get_current_piece(perfo, path):
     """ Return only the name of the current composition """
