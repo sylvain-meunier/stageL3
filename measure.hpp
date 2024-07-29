@@ -19,13 +19,13 @@ class Circle {
     public:
     Circle(std::vector<T> spectre, double x, int i) : t(std::vector<T>()), count(std::vector<int>()), x(x), len(spectre.size()), start(couple(i, 0)) {
         count.push_back(1);
-        t.push_back(spectre[0]);
-        for (unsigned int ind = 0; ind + 1 < spectre.size(); ind++) {
+        t.push_back(log2(spectre[0]));
+        for (unsigned int ind = 0; ind + 1U < spectre.size(); ind++) {
             if (spectre[ind] == spectre[ind + 1]) {
                 count[count.size() - 1]++;
             } else {
                 count.push_back(1);
-                t.push_back(spectre[ind+1U]);
+                t.push_back(log2(spectre[ind+1U]));
             }
         }
     }
@@ -46,7 +46,7 @@ class Circle {
 
     double get(couple a) {
         auto [i, k] = a;
-        return t[i]+ x*k;
+        return t[i] + x*k;
     }
 
     couple get_next(couple a) {
