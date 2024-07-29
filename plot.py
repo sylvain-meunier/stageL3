@@ -106,11 +106,11 @@ def plot_3(path, blue="Mozart", red="Ravel"):
             if composer == blue:
                 blues.append(measure)
                 color = "blue"
-                ax.axvline(x=measure, color=color, lw=8, alpha=0.3)
+                ax.axvline(x=measure, color=color, lw=2, alpha=0.4)
             elif composer == red:
                 reds.append(measure)
                 color = "red"
-                ax.axvline(x=measure, color=color, lw=8, alpha=0.3)
+                ax.axvline(x=measure, color=color, lw=2, alpha=0.4)
             values.append(measure)
     values.sort()
     plt.yscale("log")
@@ -123,7 +123,10 @@ def plot_3(path, blue="Mozart", red="Ravel"):
 
     print(len([v for v in values if v > avg]) / len(values) * 100)
     plt.legend()
+    ax.set_xbound(0, 1)
+    fig.set_layout_engine(layout="tight")
+    plt.xticks(np.arange(0, 1 + EPSILON, step=0.1))
     plt.show()
 
 
-#plot_3('./Performance/performance_075.txt')
+plot_3('./Performance/performance_075.txt')
