@@ -3,21 +3,16 @@ import scipy
 import numpy as np
 import scipy.special
 from util import EPSILON
-#from py_measure import cpp_measure
+from py_measure import cpp_measure
 from kappa import kappa_list, kappa_table
 from quantization import find_local_minima, error
 import random as rand
 
 RAD = np.pi * 2
 
-def normalize_tempo(tempo, min=60, max=120):
-    """ All usual tempos can be expressed as a unique value of (60, 120],  """
-    while tempo > max:
-        tempo /= 2
-    while tempo < min:
-        tempo *= 2
-    return tempo
-
+def normalize_tempo(a, x=1):
+    """ All tempos can be expressed as a unique value of [x, 2x)  """
+    return np.exp(np.log(a / x) - np.log(2) * np.floor(np.log2(a / x))) * x
 
 class T_Tempo():
     def __init__(self) -> None:
