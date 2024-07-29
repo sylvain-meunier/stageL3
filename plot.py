@@ -129,4 +129,4 @@ def plot_3(path, blue="Mozart", red="Ravel"):
     plt.show()
 
 
-plot_3('./Performance/performance_075.txt')
+#plot_3('./Performance/performance_075.txt')
