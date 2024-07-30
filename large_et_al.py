@@ -581,6 +581,10 @@ class Estimator():
         if self.dist(best_try[0], a) < self.eq_test:
             return a # There is an explanation to this change, without tempo consideration
         return best_try[0] # The tempo probably changed
+    
+    def even_search(self, v1):
+        """ Evenly spaced search according to log distance """
+        return 1/v1
 
     def find_solution(self, d1, d2, debug=0):
         """ solve the equation : x = t1 * E(x*t2) """
@@ -593,7 +597,7 @@ class Estimator():
                 values = (1,)
             else:
                 v1 = 1 + self.dt * i
-                v2 = 1/v1 # Evenly spaced search
+                v2 = self.even_search(v1)
                 values = (v1, v2)
             for v in values:
                 dist_to_solution = self.dist(v, t1 * self.E(v*t2))
@@ -606,6 +610,10 @@ class Estimator():
 
         return best_try[0]
 
+class AbsoluteEstimator(Estimator):
+    def even_search(self, v1):
+        """ Evenly spaced search according to absolute distance """
+        return 2 - v1
 
 class RandomEstimator(Estimator):
     def find_solution(self, d1, d2, debug=0):
@@ -658,18 +666,28 @@ class TempoTracker():
             delta_1 = self.current_time - self.last_time
             delta_2 = next_time - self.current_time
 
-            if delta_2 > EPSILON and delta_1 > EPSILON:
-                x = self.estimator.find_solution(delta_1, delta_2, debug=debug)
-                if debug:
-                    print(x)
-                self.tempo *= x
+            x = self.estimator.find_solution(delta_1, delta_2, debug=debug)
+            if debug:
+                print(x)
+            self.tempo *= x
 
-        if next_time - self.current_time > EPSILON:
-            self.last_time = self.current_time
-            self.current_time = next_time
-
+        self.last_time = self.current_time
+        self.current_time = next_time
         return self.get_tempo()
 
+
+class DurationTempoTracker(TempoTracker):
+    """ Polyphonic adaption of TempoTracker to work with durations instead of onsets """
+    def update_and_return_tempo(self, next_duration, debug=0):
+        if self.last_time is not None:
+            x = self.estimator.find_solution(self.last_time, next_duration, debug=debug)
+            if debug:
+                print(x)
+            self.tempo *= x
+
+        self.last_time = next_duration
+        return self.get_tempo()
+        
 
 def measure(spectre, delta, x=1, i=0):
     return cpp_measure(spectre, delta, x, i)
