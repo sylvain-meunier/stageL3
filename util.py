@@ -34,6 +34,11 @@ def get_downbeats_from_txt(ann_path):
     downbeats = [a["time"] for i,a in ann_df.iterrows() if a["type"].split(",")[0] == "db"]
     return downbeats
 
+def amin(a, b):
+    if abs(a) < b:
+        return a
+    return b
+
 def get_br_ind_from_txt(ann_path):
     ann_df = pd.read_csv(Path(ann_path),header=None, names=["time","time2","type"],sep='\t')
     return [i for i,a in ann_df.iterrows() if a["type"].split(",")[0] == "bR"]
@@ -85,7 +90,7 @@ def access_by_id(notes, key_id="id"):
         result[notes[key_id][i]] = notes[i]
     return result
 
-def get_matching_from_txt(midi_path, separate_hands=False):
+def get_matching_from_txt(midi_path, separate_hands=False, filter_note=True):
     """ Return a decoded version of a matching of the performance """
     path_ = ""
     for i in midi_path.split('/')[:-1]:
@@ -109,7 +114,7 @@ def get_matching_from_txt(midi_path, separate_hands=False):
         xml_id = matching["score_id"]
         xml_note = xml[xml_id]
         midi_note = midi[midi_id]
-        if len(result_matching) == 0 or (midi_note["onset_sec"] - result_matching[-1][1]["onset_sec"] > EPSILON and xml_note["onset_beat"] > result_matching[-1][0]["onset_beat"]):
+        if len(result_matching) == 0 or not(filter_note) or (midi_note["onset_sec"] - result_matching[-1][1]["onset_sec"] > EPSILON and xml_note["onset_beat"] > result_matching[-1][0]["onset_beat"]):
             result_matching.append((xml_note, midi_note))
 
     if separate_hands:
@@ -155,3 +160,6 @@ def get_current_piece(perfo, path):
     for i in perfo.split('/')[k:-1]:
         s += i + '/'
     return s
+
+def get_composer(piece, folder=path):
+    return piece.split('/')[len(folder.split('/'))]
