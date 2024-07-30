@@ -1,6 +1,45 @@
 import numpy as np
 import partitura as pt
 from symusic import Score
+from random import choice, shuffle
+
+def get_symbolic_shift(performance, canonical_tempo, flattened_tempo, k, normalize=0):
+    symbolic_shifts = []
+    for n in range(len(performance) - 1):
+        canon = canonical_tempo[n]
+        if flattened_tempo is None:
+            flat = np.median(canonical_tempo[n-k:n+k])
+        else:
+            flat = flattened_tempo[n]
+        duration = performance[n+1] - performance[n]
+
+        # in symbolic unit
+        symbolic_shifts.append(duration * (flat - canon))
+
+        if normalize: # No unit
+            symbolic_shifts[-1] /= canon * duration
+
+    return np.array(symbolic_shifts)
+
+def next_symbolic_shift(sym_s, db, lim=0.01):
+    while True :
+        d = choice(db)
+        for i in range(len(d)-1):
+            s = d[i]
+            if abs(s - sym_s) < lim:
+                return d[i+1]
+
+
+def return_perf(database, score, constant_tempo = 120):
+    shuffle(database)
+    crush = [0] * len(score)
+    symbolic_shift = choice(database)[0] # Initial symbolic shift
+    for n in range(len(score) - 1):
+        dur = score[n+1] - score[n]
+        new_duration = dur / constant_tempo
+        crush[n+1] = crush[n] + new_duration + symbolic_shift * dur / constant_tempo
+        symbolic_shift = next_symbolic_shift(symbolic_shift, database)
+    return crush
 
 def crush_tempo(performance, canonical_tempo, flattened_tempo=None, constant_tempo=None, mode="default", p=0.5, k=3):
     """ Returns a performance with controlled tempo variation around @constant_tempo
@@ -15,24 +54,14 @@ def crush_tempo(performance, canonical_tempo, flattened_tempo=None, constant_tem
         p : parameter of the specified mode. Usually, 0 means a total plain midi result, and 1 the original performance
         k : if flattened_tempo is None, length of the sliding frame to compute the median from
     """
-    assert (constant_tempo is not None and flattened_tempo is None)
+    assert (canonical_tempo is not None)
     if constant_tempo is None:
-        constant_tempo = np.median(flattened_tempo)
+        constant_tempo = np.median(canonical_tempo)
+        if flattened_tempo is not None:
+            constant_tempo = np.median(flattened_tempo)
     crush = performance.copy()
 
-    symbolic_shifts = []
-    for n in range(len(performance) - 1):
-        canon = canonical_tempo[n]
-        if flattened_tempo is None:
-            flat = np.median(canonical_tempo[n-k:n+k])
-        else:
-            flat = flattened_tempo[n]
-        duration = performance[n+1] - performance[n]
-
-        # in symbolic unit
-        symbolic_shifts.append(duration * (flat - canon))
-
-    symbolic_shifts = np.array(symbolic_shifts)
+    symbolic_shifts = get_symbolic_shift(performance, canonical_tempo, flattened_tempo, k)
 
     if mode == "d" or mode == "default" :
         symbolic_shifts *= p
@@ -47,11 +76,6 @@ def crush_tempo(performance, canonical_tempo, flattened_tempo=None, constant_tem
 
     for n in range(len(performance) - 1):
         canon = canonical_tempo[n]
-
-        if flattened_tempo is None:
-            flat = np.median(canonical_tempo[n-k:n+k])
-        else:
-            flat = flattened_tempo[n]
 
         duration = performance[n+1] - performance[n]
         
