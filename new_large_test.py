@@ -3,7 +3,7 @@ import numpy as np
 from util import EPSILON, get_beats_from_txt, get_matching_from_txt, fit_matching, path, find_recursive
 import matplotlib.pyplot as plt
 from large_score import Large, TimeKeeper, LargeKeeper
-from large_et_al import QuantiTracker, Estimator, RandomEstimator, TempoTracker, measure
+from large_et_al import QuantiTracker, Estimator, AbsoluteEstimator, RandomEstimator, TempoTracker, measure
 from plot import biglabels
 from pic import load_done, save, Timer, txt_to_pickle
 
@@ -11,12 +11,12 @@ init_bpm = 100
 tt = QuantiTracker(init_bpm)
 tk = TimeKeeper(init_bpm, beta=0.06, alpha=0.08)
 large = Large(init_bpm, eta_p=0.7, eta_phi=4) # 0.675, 0.65, 0.6
-e = TempoTracker(Estimator(accuracy=250), init_bpm)
+#e = TempoTracker(Estimator(accuracy=250), init_bpm)
 #lg = LargeKeeper(init_bpm, eta_phi=4)
 # (0.6, 3.14)
 # (0.8, 2)
 
-save_file = "random_measure.txt"
+save_file = "abs_measure.txt"
 
 folder_path = "Prokofiev/Toccata/"
 folder_path = "Brahms/Six_Pieces_op_118/2/"
@@ -28,7 +28,7 @@ folder_path = "Ravel/Pavane/"
 folder_path = "Bach/Italian_concerto/"
 folder_path = "Ravel/Pavane/"
 folder_path = "Balakirev/Islamey/"
-folder_path = "Mozart/Piano_sonatas/11-3/"
+folder_path = "Mozart/Fantasie_475/"
 
 l = []
 find_recursive(l, path, rec=1)
@@ -40,7 +40,7 @@ def normalize_tempo(a, x=1):
     return np.exp(np.log(a / x) - np.log(2) * np.floor(np.log2(a / x))) * x
 
 #plt.rcParams['axes.facecolor'] = 'gray'
-biglabels()
+#biglabels()
 
 for perfo in l:
     if perfo in already_done:
@@ -55,7 +55,7 @@ for perfo in l:
         continue
 
 
-    e = TempoTracker(RandomEstimator(accuracy=250), init_bpm)
+    e = TempoTracker(AbsoluteEstimator(limit=4/3, accuracy=250), init_bpm)
     results = [[], [], [], [], [], [], [], [], []]
     timer.update()
 

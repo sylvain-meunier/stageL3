@@ -22,12 +22,13 @@ class Timer():
             print(self.end)
 
 
-def save(perfo, data, path="measure.txt"):
+def save(perfo, data, path="measure.txt", limit=2+5):
     with open(path, 'a') as f:
-        f.write(perfo + ',')
+        if perfo is not None:
+            f.write(perfo + ',')
         for d in data[:-1]:
-            f.write(str(d)[:2+5] + ',') # 5 decimal precision
-        f.write(str(data[-1])[:2+5] + '\n')
+            f.write(str(d)[:limit] + ',') # 5 decimal precision
+        f.write(str(data[-1])[:limit] + '\n')
 
 def exec_from_txt(path, fct, t, already_done=[]):
     try:

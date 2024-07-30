@@ -1,7 +1,7 @@
 import numpy as np
 from quantization import find_local_minima, error
 import matplotlib.pyplot as plt
-from util import EPSILON
+from util import EPSILON, get_composer
 import matplotlib.pylab as pylab
 
 def f(a, t) :
@@ -102,7 +102,7 @@ def plot_3(path, blue="Mozart", red="Ravel"):
             color = "gray"
             piece, measure = line.split(',')
             measure = eval(str(measure)[:5])
-            composer = piece.split('/')[4]
+            composer = get_composer(piece)
             if composer == blue:
                 blues.append(measure)
                 color = "blue"
@@ -129,4 +129,4 @@ def plot_3(path, blue="Mozart", red="Ravel"):
     plt.show()
 
 
-#plot_3('./Performance/performance_075.txt')
+plot_3('./Performance/poly_performance_075.txt')
