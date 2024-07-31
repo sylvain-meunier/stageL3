@@ -5,7 +5,7 @@ from pathlib import Path
 
 EPSILON = 0.02 # s
 DEFAULT_TEMPO = 120 # bpm
-path = "../Database/nasap-dataset-main/"
+path = "./ASAP/"
 
 def get_beats_from_txt(ann_path, accept_br=False):
     """Get the beats time from the text annotations
@@ -163,3 +163,12 @@ def get_current_piece(perfo, path):
 
 def get_composer(piece, folder=path):
     return piece.split('/')[len(folder.split('/'))]
+
+def get_score(perfo, type="onset", unit="beat"):
+    try:
+        xml_score = pt.musicxml_to_notearray(perfo + "xml_score.musicxml")
+        return xml_score[type + "_" + unit], xml_score["pitch"]
+
+    except Exception as e:
+        pass
+    return [], []
