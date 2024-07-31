@@ -22,6 +22,9 @@ def get_symbolic_shift(performance, canonical_tempo, flattened_tempo, k, normali
     return np.array(symbolic_shifts)
 
 def next_symbolic_shift(sym_s, db, lim=0.01):
+    if len(db) == 0:
+        return sym_s
+
     while True :
         d = choice(db)
         for i in range(len(d)-1):
@@ -30,14 +33,25 @@ def next_symbolic_shift(sym_s, db, lim=0.01):
                 return d[i+1]
 
 
-def return_perf(database, score, constant_tempo = 120):
+def return_perf(database, score, constant_tempo = 120, c=0.2):
+    def cut(shift):
+        if abs(shift) <= c:
+            return shift
+        if shift < 0:
+            return -c
+        return c
+
+    constant_tempo /= 60 # Conversion to beat per second
     shuffle(database)
     crush = [0] * len(score)
-    symbolic_shift = choice(database)[0] # Initial symbolic shift
+    if len(database) > 0:
+        symbolic_shift = choice(database)[0] # Initial symbolic shift
+    else:
+        symbolic_shift = 0
     for n in range(len(score) - 1):
         dur = score[n+1] - score[n]
         new_duration = dur / constant_tempo
-        crush[n+1] = crush[n] + new_duration + symbolic_shift * dur / constant_tempo
+        crush[n+1] = crush[n] + new_duration + cut(symbolic_shift) * dur / constant_tempo
         symbolic_shift = next_symbolic_shift(symbolic_shift, database)
     return crush
 
@@ -46,7 +60,7 @@ def crush_tempo(performance, canonical_tempo, flattened_tempo=None, constant_tem
         performance : a list or array of input events
         canonical_tempo : a list or array of corresponding canonical tempo (hence with exactly one element less than the performance)
         flattened_tempo : same as @canonical_tempo, but with a certain flattened curve, can be None
-        constant_tempo : the approximate tempo of the generated performance
+        constant_tempo : the approximate tempo of the generated performance, expressed in beat per minute
         mode : either
             . 'd' for default : multiply the all the shift by @p <= 1
             . 'c' for cut : only allows shifts representing less than @p <= 1 of the note theorical duration
@@ -60,6 +74,7 @@ def crush_tempo(performance, canonical_tempo, flattened_tempo=None, constant_tem
         if flattened_tempo is not None:
             constant_tempo = np.median(flattened_tempo)
     crush = performance.copy()
+    constant_tempo /= 60 # Conversion to beat per second
 
     symbolic_shifts = get_symbolic_shift(performance, canonical_tempo, flattened_tempo, k)
 
@@ -76,18 +91,33 @@ def crush_tempo(performance, canonical_tempo, flattened_tempo=None, constant_tem
 
     for n in range(len(performance) - 1):
         canon = canonical_tempo[n]
-
-        duration = performance[n+1] - performance[n]
-        
+        duration = performance[n+1] - performance[n] 
         new_duration = canon * duration / constant_tempo
+
         crush[n+1] = crush[n] + new_duration + symbolic_shifts[n] / constant_tempo
     return crush
 
-def save_midi(crushed_tempo, inital_path, dest):
-    """
-        Save a generated performance to MIDI format
-    @crushed_tempo :
-    @dest : the path of the target MIDI file to create
-    """
-    # convert note array to midi and save result
-    pt.save_performance_midi()
+from mido import Message, MetaMessage, MidiFile, MidiTrack, bpm2tempo, second2tick
+
+def generate_mono_midi_file(performance, notes, tempo, key_signature="Dm", ts=(6, 8), save_file="gen_perf.mid", save_folder = "./PerfGen/", delay=0.5, velocity=80):
+    mid = MidiFile()
+    track = MidiTrack()
+    mid.tracks.append(track)
+
+    tempo = bpm2tempo(tempo)
+
+    track.append(MetaMessage('key_signature', key=key_signature))
+    track.append(MetaMessage('set_tempo', tempo=tempo))
+    track.append(MetaMessage('time_signature', numerator=ts[0], denominator=ts[1]))
+
+    track.append(Message('program_change', program=12, time=second2tick(delay, mid.ticks_per_beat, tempo)))
+
+    for i in range(len(performance) - 1):
+        note = notes[i]
+        duration = performance[i+1] - performance[i]
+        track.append(Message('note_on', channel=1, note=note, velocity=velocity, time=0))
+        track.append(Message('note_off', channel=1, note=note, velocity=velocity, time=second2tick(duration, mid.ticks_per_beat, tempo)))
+
+    track.append(MetaMessage('end_of_track'))
+
+    mid.save(save_folder + save_file)
