@@ -30,8 +30,10 @@
 
 #let (
   lemma, corollary, theorem, proposition, definition, remark, example, proof, rules: thm-rules
-) = default-theorems("thm-group", lang: "en", thm-numbering: thm-numbering-heading.with(max-heading-level: 1))
+) = default-theorems("thm-group", lang: "en", max-reset-level: 1, thm-numbering: thm-numbering-heading.with(max-heading-level: 1))
 #show: thm-rules
+
+#let set-thm-counter-value(group, value) = counter(thm-selector(group)).update(c => value)
 
 #let nb_eq(content) = math.equation(
     block: true,
@@ -87,7 +89,7 @@ We shall present below our following contributions :
   [Method for data augmentation, and related results, based on #cite(<foscarin_asap:_2020>, form: "normal") and #cite(<peter_automatic_2023>, form: "normal")  (#link(<data_gen>)[IV.A])]
 )
 #v(0.45em)
-#h(0.6em)This document, along with some algorithm implementations and detailled results can be found on the dedicated #link("https://github.com/sylvain-meunier/stageL3")[github repository] #cite(<git>, form: "normal"). Most proofs are to be found in Appendix.
+#h(0.6em)This document, along with some algorithm implementations and detailled results can be found on the dedicated #link("https://github.com/sylvain-meunier/stageL3")[github repository] #cite(<git>, form: "normal"). Most proofs are to be found in Appendices.
 = Score-based approaches <score_based>
 
 == Preliminary works <formal_consider>
@@ -110,21 +112,21 @@ Please note that, in both definitions, the terms of the sequence do not indicate
 With these definitions, let us formally define tempo :
 #v(-.4em)
 #definition[
-  $T in (RR^*_+)^RR$ is said to be a formal tempo (curve) with respect to $(t_n)$ and $(b_n)$ when\ for all $n in NN$, $integral_(t_0)^(t_n) T(t) dif t = b_n - b_0$
+  $T in (RR^*_+)^RR$ is said to be a formal tempo (curve) with respect to $(t_n)$ and $(b_n)$ when,\ for all $n in NN$, $integral_(t_0)^(t_n) T(t) dif t = b_n - b_0$
 ] <tempo_def>
 #v(-.4em)
 #proposition[
-  Let $T in (RR^*_+)^RR$.\ $T$ is a formal tempo according to $(t_n)$ and $(b_n)$ if and only if\ $forall n in NN, integral_(t_n)^(t_(n+1)) T(t) dif t = b_(n+1) - b_n$
+  Let $T in (RR^*_+)^RR$.\ $T$ is a formal tempo with respect to $(t_n)$ and $(b_n)$ iff\ $forall n in NN, integral_(t_n)^(t_(n+1)) T(t) dif t = b_(n+1) - b_n$
 ] <local_tempo>
 #v(-.4em)
-Since tempo is only observable between two events _a priori_, we introduce a definition for a canonical tempo, also called immediate tempo, $T^*$.
+Since tempo is only observable between two events _a priori_, we introduce a definition for a canonical tempo $T^*$, also called immediate tempo.
 #v(-.4em)
 #definition[
   Given $(t_n)$ and $(b_n)$, respectively a performance and a score, the canonical tempo is defined as a stepwise constant function $T^* in (RR^*_+)^RR$ such that :\
   $forall x in RR^+, forall n in NN, x in bracket t_n, t_(n+1) bracket => T^*(x) = (b_(n+1) - b_n) / (t_(n+1) - t_n)$
 ] <tempo_definition>
 #v(-.4em)
-The reader can verify that this function is a formal tempo according to @tempo_def. From now on, we will assume by convention that $t_0 = 0 "RTU"$ et $b_0 = 0 "MTU"$.\
+The reader can verify that this function is a formal tempo as defined in @tempo_def. From now on, we will assume by convention that $t_0 = 0 "RTU"$ et $b_0 = 0 "MTU"$.\
 
 Even though there is a general consensus in the field as for the interest and informal definition of tempo, several formal definitions coexist within literature : #cite(<raphael_probabilistic_2001>, form: "normal"), #cite(<kosta_mazurkabl:_2018>, form: "normal") and #cite(<hu_batik-plays-mozart_2023>, form: "normal") choose definitions very similar to $T^*$, approximated at the scale of a @measure or a section for instance, whereas #cite(<nakamura_stochastic_2015>, form: "normal") and #cite(<shibata_non-local_2021>, form: "normal") use $1 / T^*$.\
 
@@ -300,188 +302,159 @@ pseudocode-list(booktabs: true, hooks: .5em, title: [FindLocalMinima($D != empty
 The _consistency property_ for two tatums $a_1, a_2$ specifies that, for all $d in F_sect$ where $F_sect$ is the set of all values in common between two successive frames, $d$ is equally quantized according to $a_1$ and $a_2$, i.e., the symbolic value of $d$ is the same when considering either $a_1$ of $a_2$ as the duration of a given tatum at some tempo (respectively $1/a_1$ and $1/a_2$, as shown in @quanti_revised). From these definitions, we can now define a _tempo curve_ as a path in $G$. In fact, #cite(<romero-garcia_model_2022>, form: "normal") call such a path a _transcription_ rather than a tempo curve, yet, since an exact tempo curve would be $(T_n^*)$, these two problems are equivalent.
 
 Actually, the consistency property is not that restrictive when considering tempo curves. Let $F_1, F_2$ be two successive frames, $F_sect = F_1 sect F_2$, $d in F_sect$, and $p$ a path in $G$ containing a local minimum $a_1$ of $epsilon_F_1$. According to @local_maxima, we can divide the set of all semi-strict local maxima in two, with those "caused" by $F_sect$, $M_F_sect$, and the others. Let then $m_1, m_2 in M_F_sect$. These are local maxima for both $epsilon_F_1$ and $epsilon_F_2$ by @local_maxima since $F_sect subset F_2$, and therefore there is at least one local minimum within the range $]m_1, m_2[$ for both of these functions. However, thanks to @same_quantization, we know that both these local minima will equally quantize the elements of $D$. Hence, by defining :
-- $m_1 = max{m in M_F_sect : m < a_1}$
-- $m_2 = min{m in M_F_sect : m > a_1}$
+- #v(.1em)$m_1 = max{m in M_F_sect : m < a_1}$#v(.3em)
+- $m_2 = min{m in M_F_sect : m > a_1}$#v(.3em)
 - $a_2$ a local minimum of $epsilon_F_2$ in the range $]m_1, m_2[$, which exists since $m_1$ and $m_2$ are semi-strict local maxima,
 #v(-.55em)
 $(a_1, a_2)$ is _consistent_ according to the consistency property.
 
-#corollary(numbering: none)[The _consistency property_ only implies restrictions relative to the interval of research. In other words, any given strictly partial path $p$ in $G$ can be extended to a _consistent_ path, even if it means considering a larger interval, for any given performance, and any given frame length used to define $G$.]
-
+#corollary(numbering: none)[The consistency property only implies restrictions relative to the interval of research. In other words, any given strictly partial path $p$ in $G$ can be extended to a _consistent_ path, even if it means considering a larger interval, for any given performance, and any given frame length used to define $G$.]
+#v(-.2em)
 #remark[This approach supposes that we can define a tatum within all frames i.e., that there is a real value of the same tatum that can maintain a single value within the frame. In other words, let $a$ be the symbolic value of a given tatum, $n in NN$, and $F = {f_1, ..., f_n}$ a given frame. If we suppose all the events of F to embody a musical meaning, we can define an immediate tempo for each of them, and therefore we can express $a_i$ the value of $a$ in RTU at the tempo $t_i$ corresponding to $f_i$, $i in [|1, n|]$. In order for this approach to be meaningful, we then need the existence of $hat(a) in RR^*_+$ such that each $f_i$ is equally quantized according to $a_i$ and $hat(a)$. Since, by definition, $f_i$ is quantized by $f_i times t_i$, we obtain the following definition.
 ] <tatum_exist>
-
-#definition[With the notations introduced in @tatum_exist, a tatum $a in RR^*_+$ is said to have an actual meaning with respect to a frame $F = {f_1, ..., f_(|F|)}$ when, for all $i in [|1, |F| |], f_i times t_i in limits(argmin)_(k in ZZ) (f_i - k hat(a))$.
-]
-
+#v(-.4em)
+#definition[With the notations introduced in @tatum_exist, a tatum $a in RR^*_+$ is said to have an actual meaning with respect to a frame $F = {f_1, ..., f_(|F|)}$ when, for all $i in [|1, |F| |], f_i times t_i in limits(argmin)_(k in ZZ) (f_i - k hat(a))$.]
+#v(-.4em)
 #proposition()[When $t_i = t$ for all $i in [|1, |F| |]$, $1/t$ has an actual meaning with respect to $F$.] <constant_tempo>
 
 == Quantization revised <quanti_revised>
 
-We choose to define our tatum $epsilon$ as $1/60 ♩$, which corresponds to a sixteenth note (𝅘𝅥𝅯) wrapped within a triplet within a quintuplet, and has the property that $1 " " epsilon"/sec" = 1 "♩/min"$.\
+We choose to define our tatum $epsilon$ as $1/60 ♩$, which corresponds to a sixteenth note (i.e., 𝅘𝅥𝅯) wrapped within a triplet within a quintuplet, and has the property that $1 " " epsilon"/sec" = 1 "♩/min"$.
+This definition implies that we restrain to symbolic durations that are integer multiples of $epsilon$ in our framework. Hence, we can take $epsilon$ as our MTU. We then have $T := (Delta b) / (Delta t) = (1 epsilon) / a$, where $a$ is the theoretical duration of $epsilon$ at tempo $T$.
+From there, we can define $sigma_D : a |->  1/a epsilon_D (a)$ the _normalized error_, or _symbolic error_, which embodies the error between a transcription $m$ of $d in D$ expressed in tatum (thus a quantized and valid transcription), and $d times 1/a = d times T$, which is the expression of the symbolic duration of $d$ at tempo $T$ according to @tempo_definition.
+#v(-.2em)
+#definition[Let $A subset RR$ a countable set and $f : A -> RR$.\
+$a in A$ is said to be a local minimum of $f$ when :\
+$exists eta in RR^*_+ : forall a' in Eta := {a' in A : |a - a'| <= eta},$\
+$ f(a') >= f(a) and sup(Eta) > a > inf(Eta)$.]
+#v(-.4em)
 
-This definition implies that, in our framework, we restrain to symbolic durations that are integer multiples of $epsilon$. 
-
-in other words, $epsilon$ is our MTU. We then have $T := (Delta b) / (Delta t) = (1 epsilon) / a$, where $a$ is the theoretical duration of $epsilon$ at tempo $T$.
-From there, we can define $sigma_D : a |->  1/a epsilon_D (a)$, the _normalized error_, or _symbolic error_, since it embodies the error between a transcription of $d in D$ as $m$ expressed in tatum, hence a quantized and valid transcription, and $d times 1/a = d times T$, which is the expression of the symbolic duration of $d$ at tempo $T$ according to @tempo_definition.
-
-#definition[Let $A subset RR$ a countable set, $f : A -> RR$.\
-$a in A$ is said to be a local minimum of $f$ when, there exists $eta in RR^*_+$ so that, for all $a' in Eta = {h in A : |a - h| <= eta}$, $f(a) <= f(a')$ and $sup(Eta) > a > inf(Eta)$.]
-
-In the following, $m_D$ is the set of all the semi-strict local minima of $epsilon_D$.
-
-In order to reduce the amount of local minima considered during a computation, we propose the following conditions on a local minimum $a$ of $epsilon_D$, where $m = {a' in m_D : a' >= a}$  :
+#h(1em)In order to reduce the amount of local minima considered during computation, we propose the following conditions on a local minimum $a$ of $epsilon_D$, where $m = {a' in m_D : a' >= a}$ with $m_D$ the set of all semi-strict local minima of $epsilon_D$  :
 + $forall a' in m, epsilon_D (a) <= epsilon_D (a')$
 + $forall a' in m, sigma_D (a) <= sigma_D (a')$
 + $a$ is a local minimum of $lambda_1 : x in m_D |-> epsilon_D (x)$
 + $a$ is a local minimum of $lambda_2 : x in m_D |-> sigma_D (x)$
+#v(-.5em)
+Since $2 => 1$ and $4 => 3$, one can only consider conditions $2, 4$.
 
-We have : $2 => 1$ and $4 => 3$, hence one can only consider conditions $2$ and $4$.
-
-We present here a modified version of #cite(<romero-garcia_model_2022>, form: "normal") presented in the previous section. We define similarly a graph $G = (V, E)$, with the relaxation that the edges no longer guarantee the consistency property. In order to define our tempo curves, we then sequentially define paths in $G$ according to the following process, where $d$ is a logarithmic distance, $P$ is the set of all possible paths, and $A_n$ the set of all local minima of $epsilon_F_n$ ; $F_n$ being the n-th frame.\ \
-
-Before giving the formal definition of a fixpoint in $G$, we present an intuitive view of the interest of this definition.
-
-#definition[A partial path $p = (p_0, ..., p_f)$ in $G$ is said to be a fixpoint when there exists a partial path $p'$ in $G$ starting from the nearest tatum (or tempo) to $p_f$ according to the tempo distance $d$, and locally minimizing the tempo distance between two successive vertices such that $p_f in p'$.]
-
+We present here a modified version of #cite(<romero-garcia_model_2022>, form: "normal") introduced in the previous section. We similarly define a graph $G = (V, E)$, with the relaxation that the edges no longer guarantee the consistency property. In order to define our tempo curves, we then sequentially define paths in $G$ according to the following process, where $d$ is a logarithmic distance, $P$ is the set of all possible paths, and $A_n$ the set of all local minima of $epsilon_F_n$ ; $F_n$ being the n-th frame.\
+#v(-.4em)
+#definition[A path $p = (p_1, ..., p_f)$ in $G$ is said to be a fixpoint when there exists a path $p' = (p'_1, ..., p_f)$ in $G$ such that $forall i in [| 1, |p'|-1|],$
+$p'_(i+1) in limits(argmin)_(s in A_(i+1)) d(s, p'_i)$,\
+and $p'_1 in limits(argmin)_(s in A_1) d(s, p_f)$.]
+#v(-.4em)
 #figure(
   kind: "algorithm",
   supplement: [Algorithm],
+  caption:[Returns potential tempo curves of a performance],
 pseudocode-list(booktabs: true, hooks: .5em, title: [FindPotentialPaths(performance, frame_length, start, end) :])[
-  + $F_1 <- {p_i in "performance", i in [| 1, "frame_length" |]}$
+  + $F_1 <- {p_i in "performance", i in [|1, "frame_length"|]}$
   + $P <- "FindLocalMinima"(F_1, "start", "end")$
   + *for* $n$ corresponding to a frame :
-    + $F_n <- {p_(n+i) in "performance", i in [| 1, "frame_length" |]}$
+    + $F_n <- {p_(n+i) in "performance", i in [|1, "frame_length"|]}$
     + $A_n <- "FindLocalMinima"(F_n, "start", "end")$
     + *for* all path $p = (p_1, ..., p_n)$ in P :
       + $p_(n+1) <- limits(argmin)_(a in A_n) d(p_n, a)$
       + $p <- (p_1, ..., p_n, p_(n+1))$
   + *return* the fixpoints of $P$
 ]) <find_potential_path>
-
-We prove later that this algorithm is correct under some hypothesis, notably that the tempo at the end of the section is the same as the one at the begining, which is true in particular if the tempo is quasi-constant during the section.
-
-We thus obtain the potential tempo curves presented in @quanti_curves, where the y-axis represents tempo, and is linear between ♩ = 40 (bottom) and ♩ = 240 (top). Considering we only extend previously existing paths, without creating new, we see some path convergence, i.e., the merging of two paths into one. In this case, we end up with only 6 potential paths, whereas we started with over a thousand (exactly 1010). The x-axis corresponds to the index of each events in the performance, hence it does not contain any information regarding actual time. Such a representation allows for displaying results over a whole performance, instead of extracts. Furthermore, among the 6 paths present at the end, only 3 are fix-points, hence can actually be a tempo curve.
-
-#figure(
-  image("../Spectros/Mozart_sonata.png", width: 80%),
-  caption: [
-    All potentials tempo curves found by a quantized approach for a performance of Piano Sonata No. 11 in A Major (K. 331: III), W.A Mozart.
-  ],
-) <quanti_curves>
-
-@gonzalo_spectre presents some figures displaying the results of this approach. In order to output a single curve, we have to select a single path as previously defined, and here we choose to select the path whose first tatum value corresponds to a tempo that is the nearest to a given tempo, according to $d$.
-
-#proposition[Let $(b_n)$ be a correct transcription for a performance $(t_n)$. This informally means that $(b_n)$ is for instance the original score, or an equivalent transcription (with a different tempo or @timesig). If the canonical tempo is within range $[1/"end", 1/"start"]$, and for all $n in NN, exists k in NN : b_n = k epsilon$\
-then the complete graph whose verticies are all the local maxima contains a path which is equivalent to the canonical tempo, at least in terms of transcription.]
-
-#definition[Usually, a correct transcription does not indicates much tempo variations. Hence, if the considered section of a performance is played at a quasi-constant tempo, then the correct tempo curve is defined as the tempo curve $T = (t_1, ... t_N)$ in the graph that minimizes $limits(sum)_(i = 1)^(N-1) d(t_i, t_(i+1))$, and that is the nearest to the canonical tempo among all such tempo curves according to the tempo distance (or logarithmic distance) $d$. We can then extend this definition by merging different correct tempo curves corresponding to different sections of the performance under the hypothesis that an "actual" tempo curve is either stepwise quasi-constant, or slowly varying (and in this latter case, we will consider the tempo to be quasi-constant at the scale of two successive frames only).]
-
-Moreover, under the hypothesis that there exists a tatum $t$ that has an actual meaning with respect to $F = F_1 union F_N, N in NN$, we can extend the performance by duplicating it, as shown in @fixpoint. In this situation, the fixpoints of the graph are all the lines (that are actually all possible paths) which end is also a starting point when the performance duplicates, hence the top one, but not the bottom one.
-
-#grid(
-  align: bottom,
-  columns: (auto, auto),
-  rows: (auto),
-  [#figure(image("../Spectros/Mozart_sonata.png", width: 100%), caption: [First duplication])], [#figure(image("../Spectros/Mozart_sonata.png", width: 100%), caption: [Second duplication]) <fixpoint>]
-)
-
-As the previous figures suggest, one can verify that @quanti_curves only contains $3$ fixpoints by following each line and checking that the end point of the first duplication is the same as for the second duplication.\
-
-The following proposition is actually a conjecture at the time being, for we did not have time to formally prove it.
-
-#proposition[If the tempo at times $t_1$ and $t_N$ is the same, $N in NN$, then the correct tempo curve is a fixpoint for the section $(t_1, ..., t_N)$ of a performance $(t_n)$.]
-#corollary[The correct tempo curve for a duplicated performance is the duplicated correct tempo curve for the initial performance.]
-
-@ann1 explains that reversing the performance allows for verifying a tempo curve, since any formal tempo is correct when reversed in time. One can verify that the notion of fixpoints is actually a more subtle way to discriminate tempo curves, and that all fixpoints are actually correct when reversed in time, since the computation minimises a distance, that is thus symetrical.
-
-#proposition[For all partial performance $(t_n)_(n in [| 0, N|]), N in NN$, there is a fixpoint among the potential paths given by @find_potential_path.]
+#v(-.4em)
+We prove in @gonzalo_spectre that this algorithm is correct under some hypotheses, notably that the final tempo of the section is the same as the one at the begining, which is true in particular if the tempo is quasi-constant during the considered section.
 
 == Raw results and comparison with @score_based
 
-The tempo curves presented hereafter have all been obtained on performances that do not contain abrupt tempo changes...
-
-@raw_output presents the potential tempo curves over time, expressed in seconds (black dots) and actual canonical tempo (blue little stars), with a logarithmic tempo scale (in BPM). In this case, the canonical tempo clearly indicates a @rallentando at the end of the piece, hence the previous remarks about fixpoints cannot be applied to discriminate tempo curves.
-
-#figure(image("../Spectros/new_image.png", width: 100%), caption: [Potential tempo curves and canonical tempo for a performance of J-S. Bach, Italian Concerto, BWV 971]) <raw_output>
-
-@esti_result displays that the estimator approach is very sensitive to tempo octaves. Here, we only plotted values in the range [10, 100]. Even though, the associated transcription appears satisfying, there would need for an actual formatting of said transcription in order to obtain satisfying tempo values. Such formatting is done on @esti_result2, where one can see the tempo curve hinted by the estimator approach, that is actually really similar to the mean of the canonical tempo presented for instance in @naive_curve, though less unstable. However, such an approach needs for post-processing, and a way to determine the constant factor (obtained _via_ _Large et al._ model here).\
-On the other hand, the quantized approach appears also more stable than the methods presented in @score_based, as shown by @large_quanti, without requiring such heavy post-processing.
+All the tempo curves presented in this section have been obtained on performances without abrupt tempo changes. In order to output a single curve, we choose here to select the path whose first tatum value corresponds to the nearest tempo to a given initialization value, according to $d$.
+#v(-.5em)
+#figure(image("../Spectros/image.png", width: 100%), caption: [Potential tempo curves and canonical tempo for a performance of J-S. Bach, Italian Concerto, BWV 971]) <raw_output>
 
 #figure(image("../Figures/compar_II_III.png", width: 100%), caption: [Comparison of different models for the previous performance of J-S. Bach, Italian Concerto, BWV 971]) <esti_result>
-
-#figure(image("../Figures/compar_II_III_2.png", width: 100%), caption: [Comparison of different models for the previous performance of J-S. Bach, Italian Concerto, BWV 971]) <esti_result2>
-
+#v(-.6em)
+#figure(image("../Figures/compar_II_III_2.png", width: 100%), caption: [Comparison of different models for the same performance of J-S. Bach, Italian Concerto, BWV 971]) <esti_result2>\
+#v(-1.7em)
+@raw_output presents the potential tempo curves (black dots) and actual canonical tempo (blue stars). @esti_result illustrates that the estimator approach is sensitive to tempo octaves, hence we only plotted values within the range [10, 100]. Even though, the associated transcription appears satisfying, there would need for an actual formatting of said transcription in order to obtain satisfying tempo values. The latter is done on @esti_result2, where one can see the tempo curve hinted by the estimator approach is actually really similar to the mean of the canonical tempo notably presented in @naive_curve, though less unstable. However, such an approach needs for post-processing, and a way to determine the constant factor (obtained _via_ _Large et al._ model here).
+The quantized approach - which do not require such heavy post-processing - appears more stable than the methods presented in @score_based, as shown by @large_quanti.
+#v(-.75em)
 #figure(image("../Figures/compar_large_quanti.png", width: 100%), caption: [Comparison of different models for a performance of M. Ravel, _Pavane pour une infante défunte_]) <large_quanti>
-
+#v(-1.9em)
 = Applications
 
-== A method for monophonic data augmentation <data_gen>
+== A method for (monophonic) data augmentation <data_gen>
 
-Let $(t_n)_(n in NN), (T_n^*)_n(in NN), (T_n)_(n in NN)$ be respectively a performance, a canonical tempo for this performance, an estimated tempo curve (supposed to be flattened with respect to the canonical tempo) and $T_c in R^*_+$ a given tempo value. We define $(s_n := Delta t_n (T_n - T_n^*))_(n in NN)$ the symbolic shift of the performance according to $(T_n^*)$ and $(T_n)$. The _normalized_ performance to tempo $T_c$ of $(t_n)$ is then defined as :\
-#nb_eq($hat(t)_0 = t_0, forall n in NN, hat(t)_(n+1) = hat(t)_n + underbrace(Delta t_n T_n^* / T_c, alpha_n) + underbrace(s_n / T_c, beta_n)$)
-Where $a_n$ represents the new duration of $Delta t_n$ at tempo $T_c$, since $alpha_n = (Delta b_n) / T_c$, and $beta_n$ embodies the actual time shift at tempo $T_c$.
-#proposition[$(hat(t)_n)_(n in NN)$ is a performance as defined in @formal_consider, and $(hat(T)_n^*)_(n in NN) = (1 / (1 + s_n / (Delta b_n)) T_c)_(n in NN)$] <canonical_v>
-#proof[For all $n in NN^*, Delta hat(t)_n &= alpha_n + beta_n = Delta t_n / T_c (T_n^* + T_n - T_n^*) = Delta t_n T_n / T_c > 0$\
+Let $(Delta t_n), (T_n^*), (T_n)$ be respectively a performance, the canonical tempo for this performance, an estimated tempo curve (supposed to be flattened with respect to the canonical tempo) and $T_c in R^*_+$ a given tempo value.
+#definition[We define the symbolic shift of the performance according to $(T_n^*)$ and $(T_n)$ as $(s_n := Delta t_n (T_n - T_n^*))$. ]
+
+#definition[The _normalized_ performance at tempo $T_c$ is defined as :
+$hat(t)_0 = t_0, hat(t)_(n+1) = hat(t)_n + underbrace(Delta t_n T_n^* / T_c, alpha_n) + underbrace(s_n / T_c, beta_n) forall n in NN$.]
+#v(-.6em)
+Here $a_n$ represents the new duration of $Delta t_n$ at tempo $T_c$, since $alpha_n = (Delta b_n) / T_c$, and $beta_n$ embodies the actual time shift at tempo $T_c$.
+
+#proposition[$(hat(t)_n)$ is indeed a performance, as defined in @formal_consider. Furthermore, $(hat(T)_n^*) = ((Delta b_n) / (Delta hat(t)_n)) = (1 / (1 + s_n / (Delta b_n)) T_c)$.] <canonical_v>
+#v(-.8em)
+#proof[
+For all $n in NN^*$ :\
+$Delta hat(t)_n &= alpha_n + beta_n = Delta t_n / T_c (T_n^* + T_n - T_n^*) = Delta t_n T_n / T_c > 0$\
 Furthermore, $hat(T)_n^* = (Delta b_n) / (Delta hat(t)_n) = (Delta b_n) / (Delta b_n / T_c + s_n / T_c) = 1 / (1 + s_n / (Delta b_n)) T_c$]
+#v(-.2em)
+#remark(numbering: none)[In order to adapt this formalism for polyphonic pieces, one should also consider a shift in terms of onsets in addition to the shifts in terms of duration considered here.]
+#v(-.4em)
+Depending on the use of this data, one can choose to adapt the definition of $(s_n)$, for instance by normalizing its values or cutting all shifts that represent over a certain portion of their duration. @canonical_v illustrates how such definitions of $(s_n)$ allow for guarantees on deviations of the canonical tempo for the _normalized_ performance with respect to $T_c$.\
 
-Depending on the use of this data, one can choose to adapt the definition of $(s_n)$, for instance by normalizing its values or cutting all shifts that represent over a certain portion of their duration. @canonical_v exposes how such definitions of $(s_n)$ allow for guarantee on tempo change and deviation of the canonical tempo for the _normalized_ performance with respect to $T_c$.
+== Monophonic performance generation <perf-gen>
 
-== Performance generation <perf-gen>
-
-By considering the set of all shifts obtained from various performances, that one can see as a rhythmic language, and trying to generate a word of this language (i.e., a rhythmic template for a performance), we can compute a rough performance with some algorithm (see #cite(<git>, form: "normal") for examples). A more subtle method could be to train some algorithms to reproduce those patterns depending on the context of a particular piece (rhythmic (un)stability, begining of a @phrase, @cadence...), as score features may sometimes trump individual styles #cite(<Kosta2016Mapping>, form: "normal").
+By considering the set of all shifts obtained from various performances, that one can see as a rhythmic language, and trying to generate a word of this language (i.e., a rhythmic template for a performance), we can generate rough performances from a given score. A few examples of such generated pieces are to be found on #cite(<git>, form: "normal"). A more subtle method could be to train some algorithms to reproduce rhythmic patterns within a database depending on the context of a particular piece (rhythmic (un)stability, begining of a @phrase, @cadence...), as score features may sometimes eclipse individual styles #cite(<Kosta2016Mapping>, form: "normal").
 
 == Quantitative musicological analysis
 
-An actual definition of a time-shift allows for a quantitative, and statistical analysis of human performances regarding the latter. The quantitative variations of the canonical tempo at the end of a phrase, or depending on the kind of cadence already exist within literature #cite(<kosta_mazurkabl:_2018>, form:"normal") #cite(<hentschel_annotated_2021>, form:"normal") #cite(<hu_batik-plays-mozart_2023>, form:"normal"), and could be complemented with such a study.
-
+A formal definition for time-shifts allows for a quantitative, and statistical analysis of human performances regarding the latter. The analysis of quantitative variations of the canonical tempo at the end of a phrase, or depending on the kind of cadence already exist within literature #cite(<kosta_mazurkabl:_2018>, form:"normal") #cite(<hentschel_annotated_2021>, form:"normal") #cite(<hu_batik-plays-mozart_2023>, form:"normal"), and could be complemented with such a study.
+#colbreak()
 == MIDI transcription
 
-The methods presented in @score_less could be used as pre-processing for transcription problem, allowing to add complementary data with respect to the transcription (such as tempo stability, consistency, and potentially tempo changes).
-
+The methods presented in @score_less could be used as pre-processing for transcription problems, allowing to add complementary data with respect to the transcription (such as tempo stability, consistency, and potentially tempo changes).
+#v(-.4em)
 = Conclusion & perspectives <conclusion>
 
-We presented here some methods for @monophonic tempo analysis, with applications to data augmentation (@data_gen), rough performance generation (@perf-gen), and transcription. The latter could allows for further development in addition with a generative grammar for glocal consistency, as a multi-criteria optimisation #cite(<foscarin2019parse>, form: "normal") including tempo stability, specifically when coupled by a method similar to @quanti_revised.\
+We presented here some methods for @monophonic tempo analysis, with applications to data augmentation (@data_gen), rough performance generation (@perf-gen), and transcription. The latter could allow for further development in addition to a generative grammar for global consistency, as a multi-criteria optimisation #cite(<foscarin2019parse>, form: "normal") including tempo stability, specifically when coupled by a method similar to @quanti_revised.\
 In particular, a dynamic programming algorithm could be used to detect potential abrupt tempo changes, or quasi-constant tempo sections.
+Even though we focused here on monophonic works, or rather on monophic views of performances, the very definition of canonical tempo presented here is more fit for monophonic pieces than polyphonic ones. The reader shall find some extensions of this formalism suited for polyphonic works in @ann1.
 
-@quanti_revised also presented a model which appear to share some similarities with the _Large et al_ model (@large_modif) as a score-based approach. Therefore, studying the formalism for a quantizer might allow to obtain some theoretical results for the previous model, regarding for instance convergence guarantee and meaningfulness of the result.
+@quanti_revised also presented a model which appears to share some similarities with the _Large et al._ model (@large_modif), modified as a score-based method. Therefore, studying the formalism for a quantizer might allow to obtain some theoretical results for the previous model, regarding for instance time of convergence guarantee and meaningfulness of the result.
 
-Finally, the most immediate case of use of @data_gen is fuzz testing for algorithm in tasks such as beat-tracking, transcription or tempo inference. In fact, this section presented a way to "midify" an actual performance, that we can see as a function from the set of musical human performances to the set of plain and flat midi files as generated by standard softwares. Being able to reverse this function could then allow for generating convincing performances. We presented in @perf-gen a rough way to extrapolate such data augmentation for performance generation, that could certainly be improved with more subtle langague algorithms, or machine learning techniques.
-
-Even though we focused here on monophonic works, or rather on monophic views of performances : the very definition of canonical tempo presented here is more fit for monophic pieces than polyphonic ones. The reader shall find some extensions of this formalism suited for polyphonic works in appendix.
+Finally, the most immediate case of use of @data_gen is fuzz testing for algorithm in tasks such as beat-tracking, transcription or tempo inference. In fact, this section presented a way to "midify" an actual performance, that we can see as a function from the set of musical human performances to the set of plain and flat midi files as generated by standard softwares. Being able to reverse this function could then allow for generating convincing performances. We presented in @perf-gen a rough way to extrapolate such data augmentation for performance generation, that could be improved with formal langage algorithms or machine learning techniques.
 
 #bibliography("refs.bib", title: "References")
 
 #colbreak()
 
 #appendix([Some formal considerations], [
-== Equivalence of tempo formal definitions
+== Proof of @local_tempo
 
-Let $n in NN$.
-$integral_(t_0)^(t_(n)) T(t) dif t = sum_(i = 0)^(n-1) integral_(t_i)^(t_(i+1)) T(t) dif t$\
-Furthermore, $integral_(t_n)^(t_(n+1)) T(t) dif t = integral_(t_0)^(t_(n+1)) T(t) dif t + integral_(t_n)^(t_0) T(t) dif t = integral_(t_0)^(t_(n+1)) T(t) dif t - integral_(t_0)^(t_n) T(t) dif t$.\ \
-Let $T$ be a formal tempo according to the first definition. For all $n in NN$, we then have :\ $integral_(t_n)^(t_(n+1)) T(t) dif t &= integral_(t_0)^(t_(n+1)) T(t) dif t - integral_(t_0)^(t_n) T(t) dif t\
+Let $n in NN$,
+$integral_(t_0)^(t_(n)) T(t) dif t = limits(sum)_(i = 0)^(n-1) integral_(t_i)^(t_(i+1)) T(t) dif t$\
+#v(.8em)
+$"Furthermore", integral_(t_n)^(t_(n+1)) T(t) dif t &= integral_(t_0)^(t_(n+1)) T(t) dif t + integral_(t_n)^(t_0) T(t) dif t \ &= integral_(t_0)^(t_(n+1)) T(t) dif t - integral_(t_0)^(t_n) T(t) dif t$\
+Let $T$ be a formal tempo according to the first definition.\
+For all $n in NN$, we then have :\ #v(.2em) $integral_(t_n)^(t_(n+1)) T(t) dif t &= integral_(t_0)^(t_(n+1)) T(t) dif t - integral_(t_0)^(t_n) T(t) dif t\
 &= b_(n+1) - b_0 - (b_n - b_0)\
 &= b_(n+1) - b_n$\
-Let $T$ be a formal tempo according to the second definition. For all $n in NN$ :\
-$integral_(t_0)^(t_(n)) T(t) dif t &= sum_(i = 0)^(n-1) integral_(t_i)^(t_(i+1)) T(t) dif t\
-&= sum_(i = 0)^(n-1) b_(i+1) - b_i\
+Let $T$ be a formal tempo according to the second definition. For all $n in NN$ :\ #v(.2em)
+$integral_(t_0)^(t_(n)) T(t) dif t &= limits(sum)_(i = 0)^(n-1) integral_(t_i)^(t_(i+1)) T(t) dif t\
+&= limits(sum)_(i = 0)^(n-1) b_(i+1) - b_i\
 &= b_n - b_0$\
 We thus obtain the two implications, hence the equivalence stated in @local_tempo.
 
 == The *tempo octave* problem <tempo_oct>
 
-When estimating tempo, or transcribing a performance, there always exist several equivalent possibilities. For instance, given a "correct" transcription $(b_n)$ of a performance $(t_n)$, one can choose to define its own transcription as $t = (b_n / 2)_(n in NN)$.\
+When defining tempo, or transcribing a performance, there always exist several equivalent possibilities. For instance, given a "correct" transcription $(b_n)$ of a performance $(t_n)$, one can choose to define its own transcription as $t = (b_n / 2)$.\
 Then, the canonical tempo with respect to $t$, called $(T_1^*)$, and the one with respect to $(b_n)$, called $(T_2^*)$ verify :\
-$forall n in NN, T_(1, n)^* = (b_(n+1) / 2 - b_n / 2) / (t_(n+1) - t_n) = 1/2 T_(2, n)^*$.
-Actually, the $t$ transcription corrections to $(b_n)$ where all durations are indicated doubled, but played twice faster, hence giving the exact same theoretical performance. Unfortunately, there is no absolute way to decide which of those two transcription is better than the other. This problem is here known as the tempo octave problem, and should be keeped in mind when transcribing or estimating tempo. We present in @estimator_intro a model resistant to these tempo octaves, as well as other kind of octaves not discussed here (for instance multiplying the tempo by $3$ by using @triplet).
+$forall n in NN, T_(1, n)^* = (1/2 b_(n+1) - 1/2 b_n) / (t_(n+1) - t_n) = 1/2 T_(2, n)^*$.
+Actually, the transcription $t$ corresponds to $(b_n)$ where all durations are indicated doubled, but played twice faster, hence giving the exact same theoretical performance. Unfortunately, there is no absolute way to decide which of these two transcription is better than the other. This problem is known as the tempo octave problem, and should be kept in mind when transcribing, or estimating tempo. We present in @estimator_intro a model robust to these tempo octaves, and other kind of octaves not discussed here (for instance multiplying the tempo by $3$ using @triplet).
 
 
-== Tempo convservation when reversing time
+== Tempo conservation when reversing time
 
-First, we want to insist on the fact that none of the sequence $(b_n)$ and $(t_n)$ are infinite, but in order to simplify the notation, we chose to indicate them as usual infinite sequences, or rather only consider them on a finite number of indexes, called $|(b_n)|$ and $|(t_n)|$ respectively, with $|(b_n)| = |(t_n)|$. Let us then define the reversed sequence of $(u_n)_(n in NN)$ as $r((u_n)_(n in NN)) := (overline(u_n) = u_(|(u_n)|) - u_(|(u_n)| - n))_(n in [|0, |(u_n)| |])$. Both $overline(b) = r((b_n)_(n in NN))$ and $overline(t) = r((t_n)_(n in NN))$ are correct representations of a music score and performance respectively, as defined in @formal_consider.
-
-Let $t^* = t_(|(t_n)|)$ and $q = |(t_n)|$, $T$ a formal tempo with respect to $(t_n)$ and $(b_n)$, i.e., $forall n in NN, integral_(t_n)^(t_(n+1)) T(t) dif t = b_(n+1) - b_n$, $n in [| 0, q - 1|]$, and $T_r : t |-> T(t^* - t)$.
+First, we want to insist on the fact that none of the sequences $(b_n)$ and $(t_n)$ are infinite, but in order to simplify the notation, we chose to indicate them as usual infinite sequences, or rather only consider them on a finite number of indexes, refered to as $|(b_n)|$ and $|(t_n)|$ respectively, with $|(b_n)| = |(t_n)|$. Let us then define the reversed sequence of $(u_n)$ as $r((u_n)) := (overline(u_n) = u_(|(u_n)|) - u_(|(u_n)| - n))_(n in [|0, |(u_n)| |])$\
+Both $overline(b) = r((b_n))$ and $overline(t) = r((t_n))$ are correct representations of a music score and performance respectively, as defined in @formal_consider.\
+Let $q = |(t_n)|$, $t^* = t_q$, $T$ a formal tempo with respect to $(t_n)$ and $(b_n)$, $n in [| 0, q - 1|]$ and $T_r : t |-> T(t^* - t)$.
 
 $integral_(overline(t_n))^(overline(t_(n+1))) T_r (t) dif t &= integral_(t^* - t_(q - n))^(t^* - t_(q - n-1)) T(t^* - t) dif t = integral_(t_(q - n))^(t_(q - n - 1)) -T(x) dif x\
 &= integral_(t_(q - n - 1))^(t_(q - n)) T(t) dif t\
@@ -492,7 +465,7 @@ $integral_(overline(t_n))^(overline(t_(n+1))) T_r (t) dif t &= integral_(t^* - t
 
 Hence $T_r$ is a formal tempo with respect to $(overline(t_n))$ and $(overline(b_n))$.
 
-== Musical explication of the choice of  a tempo distance
+== Musical explanation of the choice of  a tempo distance
 
 In terms of tempo, halving and doubling are considered as far as each other from the initial value. Therefore a usual absolute distance does not fit this notion, and we will rather use a logarithmic distance when comparing tempi.
 ]) <ann1>
@@ -771,6 +744,44 @@ Thanks to the previous necessary condition, to find the semi-strict local minimu
 Finally @algonzalo is correct, and can actually run in
 $cal(O)(|D|^2(1 + d^* / "start" - d_* / "end"))$ with $d_* = min T$ and $d^* = max T$.
 ]) <gonzalo_spectre>
+
+#proposition[Let $(b_n)$ be a correct transcription for a performance $(t_n)$. This informally means that $(b_n)$ is for instance the original score, or an equivalent transcription (with a different tempo or @timesig). If the canonical tempo is within range $[1/"end", 1/"start"]$, and for all $n in NN, exists k in NN : b_n = k epsilon$\
+then the complete graph whose verticies are all the local maxima contains a path which is equivalent to the canonical tempo, at least in terms of transcription.]
+
+== Remarks about the fixpoints
+
+@quanti_curves presents the potential tempo curves, where the y-axis represents tempo, and is linear between ♩ = 40 (bottom) and ♩ = 240 (top). Since we only extend previously existing paths, without creating new, we see some path convergence, i.e., the merging of two paths into one. In this case, we end up with only 6 potential paths, whereas we started with over a thousand (exactly 1010). The x-axis corresponds to the index of each event in the performance, hence it does not contain any information regarding actual time. Such a representation allows for displaying results over a whole performance, instead of extracts. Furthermore, among the 6 paths present at the end, only 3 are fixpoints, hence can actually be a tempo curve.
+
+#figure(
+  image("../Spectros/Mozart_sonata_1.png", width: 95%),
+  caption: [
+    All potentials tempo curves found by our quantized approach for a performance of K. 331: III, W.A Mozart.
+  ],
+) <quanti_curves>
+
+#definition[Usually, a correct transcription does not indicates much tempo variations. Hence, if the considered section of a performance is played at a quasi-constant tempo, then the correct tempo curve is defined as the tempo curve $T = (t_1, ... t_N)$ in the graph that minimizes $limits(sum)_(i = 1)^(N-1) d(t_i, t_(i+1))$, and that is the nearest to the canonical tempo among all such tempo curves according to the tempo distance (or logarithmic distance) $d$. We can then extend this definition by merging different correct tempo curves corresponding to different sections of the performance under the hypothesis that an "actual" tempo curve is either stepwise quasi-constant, or slowly varying (and in this latter case, we will consider the tempo to be quasi-constant at the scale of two successive frames only).]
+
+Moreover, under the hypothesis that there exists a tatum $t$ that has an actual meaning with respect to $F = F_1 union F_N, N in NN$, we can extend the performance by duplicating it, as shown in @fixpoint. In this situation, the fixpoints of the graph are all the lines (that are actually all possible paths) which end is also a starting point when the performance duplicates, hence the top one, but not the bottom one.
+
+#grid(
+  align: bottom,
+  columns: (auto, auto),
+  rows: (auto),
+  [#figure(image("../Spectros/Mozart_sonata.png", width: 100%), caption: [First duplication])], [#figure(image("../Spectros/Mozart_sonata.png", width: 100%), caption: [Second duplication]) <fixpoint>]
+)
+
+As the previous figures suggest, one can verify that @quanti_curves only contains $3$ fixpoints by following each line and checking that the end point of the first duplication is the same as for the second duplication.\
+
+The following proposition is actually a conjecture at the time being, for we did not have time to formally prove it.
+
+#proposition[If the tempo at times $t_1$ and $t_N$ is the same, $N in NN$, then the correct tempo curve is a fixpoint for the section $(t_1, ..., t_N)$ of a performance $(t_n)$.]
+#corollary[The correct tempo curve for a duplicated performance is the duplicated correct tempo curve for the initial performance.]
+
+@ann1 explains that reversing the performance allows for verifying a tempo curve, since any formal tempo is correct when reversed in time. One can verify that the notion of fixpoints is actually a more subtle way to discriminate tempo curves, and that all fixpoints are actually correct when reversed in time, since the computation minimises a distance, that is thus symetrical.
+
+In the case of @raw_output and @esti_result, the canonical tempo clearly indicates a @rallentando at the end of the piece, hence the previous remarks about fixpoints cannot be applied to discriminate tempo curves.
+
+#proposition[For all partial performance $(t_n)_(n in [| 0, N|]), N in NN$, there is a fixpoint among the potential paths given by @find_potential_path.]
 
 == Remarks about the distances used in the quantized approach
 
