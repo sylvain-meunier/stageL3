@@ -1,15 +1,15 @@
-= L3 Internship
+## L3 Internship
 
 This repository contains results, examples and algorithm implementations of the work presented in `report.pdf`
 
-= Dependencies
+## Dependencies
 
 The code presented here uses the following Python package:
 - [`mido`](https://mido.readthedocs.io/en/stable/)
 - [`symusic`](https://github.com/Yikai-Liao/symusic)
 - [`partitura`](https://github.com/CPJKU/partitura)
 
-= Organization
+## Organization
 
 This repository is organized as follow :
 
@@ -27,7 +27,7 @@ This repository is organized as follow :
 `plot.py` contains some code used for generating figures, along with utilities\
 `quantization.py` contains a Python implementation of Algorithm 1 : FindLocalMinima
 
-= Folders
+## Folders
 - `Asap` : extracts from the [(n)-ASAP dataset](https://github.com/CPJKU/asap-dataset).
 - `Results` : direct results of our works
     - `Figures` : obtained figures (notably those of the report in better resolution)
@@ -36,7 +36,7 @@ This repository is organized as follow :
     - `PerfGen` : generated monophonic pieces or samples
 - `Measure` : C++ code for the computation of the measure `m` defined in the report. In order to use said code, follow the instructions given [here](#Measure).
 
-= Measure
+## Measure
 
 In order to use the `measure` function defined in ..., one should compile the Python library using the two following commands (here showed for MacOS) from the `Measure` folder using Pybind.
 
