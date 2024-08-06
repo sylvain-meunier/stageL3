@@ -1,0 +1,45 @@
+This file just contains some timestamps of different versions of the extract presented in Appendix B of the report
+
+My own performance :
+1.757
+2.330
+2.534
+2.924
+3.296
+3.669
+4.080
+4.649
+4.846
+5.274
+5.650
+6.013
+6.424
+
+A beat is a quarter here according to the time signature
+Official score :
+1
+2.5
+3
+4
+5
+6
+7
+8.5
+9
+10
+11
+12
+
+False transcription :
+1.1875
+2.775
+3.25
+4.125
+5.25
+6.25
+7.45
+9
+9.375
+10.416667
+11.375
+12.375
