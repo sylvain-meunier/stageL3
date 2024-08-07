@@ -1,0 +1,11 @@
+We present here some results regarding experiments made on the Large et al. model stability.
+
+The theoretical framework is :
+    - First, a metronome with some perturbations (indicated in title for each plot), with various tempo changes
+    - Finally, the rhythm 𝄽 ♩♩is used at the metronome, with no perturbations. In other words, the metronome misses the first beat of each measure in this case. This second experiment starts at 700s.
+
+In terms of legend :
+    - Naive refers to the canonical tempo
+    - Timekeeper is the Timekeeper model presented in the report
+    - Oscillator refers to the Large et al. model where kappa is constant over time
+    - Oscillator (kappa-corrected) is the Large et al. model presented in the report

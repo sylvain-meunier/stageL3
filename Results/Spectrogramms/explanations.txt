@@ -1,0 +1,5 @@
+The figures in this folder present different spectrogramms obtained from the quantized approach.
+
+When the file name ends with :
+    - amount, then the amount of paths with the same tatum indicates the brightness
+    - error, then a brighter point indicates a lower transcription error, except if the background is white. In this case, the convention is the opposite.
