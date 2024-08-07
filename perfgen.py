@@ -1,10 +1,9 @@
-from matplotlib import pyplot as plt
 import numpy as np
 from pic import load_from_txt, save
-from tempo_crusher import crush_tempo, get_symbolic_shift, return_perf, generate_mono_midi_file
-from models import CanonicalTempo
-from large_et_al import QuantiTracker
+from matplotlib import pyplot as plt
+from models import CanonicalTempo, QuantiTracker
 from util import path, find_recursive, fit_matching, get_matching_from_txt, amin, get_score
+from tempo_crusher import crush_tempo, get_symbolic_shift, return_perf, generate_mono_midi_file
 
 save_file = "./PerfGen/" + "crushed.txt"
 C_TEMPO = 120
@@ -40,7 +39,6 @@ def generate_shifts(p=0.9):
                 time_onsets.append(onsets[ti][1])
             
             tempo = np.median(can_mono)
-            print(tempo)
             qt = QuantiTracker(tempo)
             qt_mono = QuantiTracker(tempo)
             flat = []
@@ -55,10 +53,10 @@ def generate_shifts(p=0.9):
             crush = [amin(p, c) if c > 0 else -amin(p, c) for c in crush]
             save(perfo, crush, path=save_file, limit=10)
 
-def generate_perf(score, path="./PerfGen/crushed_mono.txt", constant_tempo=160):
+def generate_perf(score, path="./PerfGen/crushed_mono.txt", constant_tempo=160, c=0.4):
     database = load_from_txt(path, 195)
     database = [d[1:] for d in database] # Ignore the name of the performances
-    return return_perf(database, score, constant_tempo=constant_tempo)
+    return return_perf(database, score, constant_tempo=constant_tempo, c=c)
 
 
 def examples_old_castle():
@@ -71,13 +69,13 @@ def examples_old_castle():
     
     generate_mono_midi_file(g, notes, 160)
 
-def example_mozart_sonata(tempo=110, sheet="Mozart/Piano_sonatas/11-3/", db="default"):
+def example_mozart_sonata(tempo=110, sheet="Mozart/Piano_sonatas/11-3/", db="default", c=0.4):
     score, notes = get_score(path + sheet)
     if db == "default":
-        generated = generate_perf(score, constant_tempo=tempo)
+        generated = generate_perf(score, constant_tempo=tempo, c=c)
     else:
-        generated = generate_perf(score, path=db, constant_tempo=tempo)
+        generated = generate_perf(score, path=db, constant_tempo=tempo, c=c)
     
     generate_mono_midi_file(generated, notes, tempo)
 
-example_mozart_sonata(sheet="Mozart/Piano_sonatas/8-1/", tempo=160)
+example_mozart_sonata(sheet="Mozart/Piano_sonatas/8-1/", tempo=160, c=0.45)

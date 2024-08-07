@@ -1,23 +1,26 @@
 import numpy as np
-from quantization import find_local_minima, error
 import matplotlib.pyplot as plt
-from util import EPSILON, get_composer
 import matplotlib.pylab as pylab
+from util import EPSILON, get_composer
+from quantization import find_local_minima, error
 
-def f(a, t) :
-    return t/a - int(t/a)
 
-def g(a, t) :
-    return min(f(a, t), 1 - f(a, t))
-
-def k(a, T):
-    return a * np.max([g(a, t) for t in T])
+def biglabels(size=35):
+    params = {'legend.fontsize': size,
+        'axes.labelsize': size,
+        'axes.titlesize':size,
+        'xtick.labelsize':20,
+        'ytick.labelsize':20}
+    pylab.rcParams.update(params)
+    fig, ax = plt.subplots()
+    fig.set_layout_engine(layout="tight")
+    return fig, ax
 
 def plot1():
     T = np.array([0.98, 1.52])
     tau = 0.1
     x = np.arange(2*tau, (np.min(T) + tau)*2, 0.001) # step at 1ms
-    y = [(lambda t : k(a, t))(T) for a in x]
+    y = [(lambda t : error(a, t))(T) for a in x]
 
     tmp = [[t/(k + 0.5) for k in np.arange(1, int(t/(2*tau))+1, 1)] for t in T]
     #tmp = [(t1 + t2) / k for t1 in T for t2 in T if t2 < t1 for k in range(1, int((t1+t2)/(2*tau)) + 1)]
@@ -55,16 +58,7 @@ def canonical(score, perf, n, default=120):
 def th_delta(t1, t2):
     return abs(1 / t1 - 1/t2)
 
-def biglabels(size=35):
-    params = {'legend.fontsize': size,
-        'axes.labelsize': size,
-        'axes.titlesize':size,
-        'xtick.labelsize':20,
-        'ytick.labelsize':20}
-    pylab.rcParams.update(params)
-
 def plot_castle():
-    #plt.rcParams['axes.facecolor'] = 'gray'
     biglabels()
 
     perf = [1.757, 2.330, 2.534, 2.924, 3.296, 3.669, 4.080, 4.649, 4.846, 5.274, 5.650, 6.013, 6.424]
@@ -79,21 +73,20 @@ def plot_castle():
 
     dist = [abs(np.log(c1[i] / c2[i])) for i in range(len(c1))]
 
-    
-    #plt.plot(perf[:-1], c1, '*', color="white", markersize=8, label="Tempo curve A")
-    #plt.plot(perf[:-1], c2, '.', color="black", markersize=8, label="Tempo curve B")
+    plt.yscale("log")
+    plt.plot(perf[:-1], c1, '.', color="black", markersize=8, label="Tempo curve A")
+    plt.plot(perf[:-1], c2, '^', color="gray", markersize=8, label="Tempo curve B")
     #plt.plot(perf[:-1], dist, '-', color="black", markersize=8, label="Tempo distance")
     #plt.plot((perf[0], perf[-2]), [EPSILON, EPSILON], '-', color="red", label="Human ability treshold")
-    plt.plot(perf[:-1], [th_delta(c1[i], c2[i]) for i in range(len(c1))], '--', color="black", markersize=8, label="Theorical distance")
+    #plt.plot(perf[:-1], [th_delta(c1[i], c2[i]) for i in range(len(c1))], '--', color="black", markersize=8, label="Theorical distance")
     plt.xlabel("Time (s)")
-    plt.ylabel("Tempo distance (log)")
+    #plt.ylabel("Tempo distance (log)")
+    plt.ylabel("Tempo (♪ per minute)")
     plt.legend()
     plt.show()
 
 def plot_3(path, blue="Mozart", red="Ravel"):
-    biglabels()
-
-    fig, ax = plt.subplots()
+    fig, ax = biglabels()
     values = []
     reds = []
     blues = []
@@ -103,6 +96,7 @@ def plot_3(path, blue="Mozart", red="Ravel"):
             piece, measure = line.split(',')
             measure = eval(str(measure)[:5])
             composer = get_composer(piece)
+            composer = piece.split('/')[4]
             if composer == blue:
                 blues.append(measure)
                 color = "blue"
@@ -128,5 +122,4 @@ def plot_3(path, blue="Mozart", red="Ravel"):
     plt.xticks(np.arange(0, 1 + EPSILON, step=0.1))
     plt.show()
 
-
-plot_3('./Performance/poly_performance_075.txt')
+#plot_3('./Performance/poly_performance_025.txt')

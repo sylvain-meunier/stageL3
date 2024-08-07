@@ -2,6 +2,7 @@ import numpy as np
 import partitura as pt
 from symusic import Score
 from random import choice, shuffle
+from mido import Message, MetaMessage, MidiFile, MidiTrack, bpm2tempo, second2tick
 
 def get_symbolic_shift(performance, canonical_tempo, flattened_tempo, k, normalize=0):
     symbolic_shifts = []
@@ -21,26 +22,27 @@ def get_symbolic_shift(performance, canonical_tempo, flattened_tempo, k, normali
 
     return np.array(symbolic_shifts)
 
-def next_symbolic_shift(sym_s, db, lim=0.01):
+def next_symbolic_shift(sym_s, db, c, lim=0.001):
     if len(db) == 0:
         return sym_s
 
+    sym_s = cut(c, sym_s)
     while True :
         d = choice(db)
         for i in range(len(d)-1):
-            s = d[i]
-            if abs(s - sym_s) < lim:
+            s = cut(c, d[i])
+            if abs(s - sym_s) <= lim:
                 return d[i+1]
 
 
-def return_perf(database, score, constant_tempo = 120, c=0.2):
-    def cut(shift):
-        if abs(shift) <= c:
-            return shift
-        if shift < 0:
-            return -c
-        return c
+def cut(c, shift):
+    if abs(shift) <= c:
+        return shift
+    if shift < 0:
+        return -c
+    return c
 
+def return_perf(database, score, constant_tempo = 120, c=0.2):
     constant_tempo /= 60 # Conversion to beat per second
     shuffle(database)
     crush = [0] * len(score)
@@ -51,8 +53,8 @@ def return_perf(database, score, constant_tempo = 120, c=0.2):
     for n in range(len(score) - 1):
         dur = score[n+1] - score[n]
         new_duration = dur / constant_tempo
-        crush[n+1] = crush[n] + new_duration + cut(symbolic_shift) * dur / constant_tempo
-        symbolic_shift = next_symbolic_shift(symbolic_shift, database)
+        crush[n+1] = crush[n] + new_duration + cut(c, symbolic_shift) * dur / constant_tempo
+        symbolic_shift = next_symbolic_shift(symbolic_shift, database, c)
     return crush
 
 def crush_tempo(performance, canonical_tempo, flattened_tempo=None, constant_tempo=None, mode="default", p=0.5, k=3):
@@ -97,9 +99,7 @@ def crush_tempo(performance, canonical_tempo, flattened_tempo=None, constant_tem
         crush[n+1] = crush[n] + new_duration + symbolic_shifts[n] / constant_tempo
     return crush
 
-from mido import Message, MetaMessage, MidiFile, MidiTrack, bpm2tempo, second2tick
-
-def generate_mono_midi_file(performance, notes, tempo, key_signature="Dm", ts=(6, 8), save_file="gen_perf.mid", save_folder = "./PerfGen/", delay=0.5, velocity=80):
+def generate_mono_midi_file(performance, notes, tempo, key_signature="Dm", ts=(6, 8), save_file="gen_perf.mid", save_folder = "./Examples/PerfGen/", delay=0.5, velocity=80):
     mid = MidiFile()
     track = MidiTrack()
     mid.tracks.append(track)

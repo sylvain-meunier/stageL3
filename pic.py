@@ -22,7 +22,7 @@ class Timer():
             print(self.end)
 
 
-def save(perfo, data, path="measure.txt", limit=2+5):
+def save(perfo, data, path="./Results/Performance/measure.txt", limit=2+5):
     with open(path, 'a') as f:
         if perfo is not None:
             f.write(perfo + ',')
@@ -49,25 +49,25 @@ def load_from_txt(path, nb_line=1018):
     exec_from_txt(path, lambda x, y : l.append([x] + y), t)
     return l
 
-def txt_to_pickle(path="measure.txt"):
+def txt_to_pickle(path="./Results/Performance/measure.txt"):
     l = load_from_txt(path)
-
-    with open(path.split('.')[0] + ".pick", 'wb') as f:
+    extension_len = len(path.split('.')[-1])
+    with open(path.split('.')[:-extension_len] + "pick", 'wb') as f:
         pi.dump(l, f)
 
-def load_pick(path="measure.pick"):
+def load_pick(path="./Results/Performance/measure.pick"):
     with open(path, 'rb') as f:
         return pi.load(f, encoding="UTF-8")
 
-def load_done(path="measure.txt"):
+def load_done(path="./Results/Performance/measure.txt"):
     p = load_from_txt(path=path)
     return [i[0] for i in p]
 
 
 
-def test_perf():
+def test_perf(path_='./Results/Performance/measure.txt'):
     t = time.time()
-    load_from_txt("measure.txt")
+    load_from_txt(path_)
     print("ELAPSED TIME FOR LOADING TXT",time.time() - t) # 96 s
     t = time.time()
     l = load_pick()

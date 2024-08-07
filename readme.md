@@ -1,6 +1,9 @@
 ## L3 Internship
 
-This repository contains results, examples and algorithm implementations of the work presented in `report.pdf`
+This repository contains results, examples and algorithm implementations of the work presented in `report.pdf`. Since the latter has been written in [Typst](https://typst.app/), which currently have some issues when it comes to printing, one should consider `printable-report.pdf` for such use.
+
+### Notation
+The Estimator and quantized approaches are known as TempoTracker and QuantiTracker respectively in this code and associated figures.
 
 ## Dependencies
 
@@ -29,12 +32,13 @@ This repository is organized as follow :
 
 ## Folders
 - `Asap` : extracts from the [(n)-ASAP dataset](https://github.com/CPJKU/asap-dataset).
-- `Results` : direct results of our works
-    - `Figures` : obtained figures (notably those of the report in better resolution)
-    - `Performance` : results of different estimators, tested over the whole (n)-ASAP dataset. The value indicated at the end of the name is the value of Δ used for the measure computation
 - `Examples` : examples of applications
     - `PerfGen` : generated monophonic pieces or samples
 - `Measure` : C++ code for the computation of the measure `m` defined in the report. In order to use said code, follow the instructions given [here](#Measure).
+- `Results` : direct results of our works
+    - `Figures` : obtained figures (notably those of the report in better resolution)
+    - `Performance` : results of different estimators, tested over the whole (n)-ASAP dataset. The value indicated at the end of the name is the value of Δ used for the measure computation
+    - `Spectrogramms` : differents figures illustrating the quantized approach
 
 ## Measure
 

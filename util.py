@@ -1,11 +1,23 @@
 import os
 import symusic
+import numpy as np
 import pandas as pd
+import partitura as pt
 from pathlib import Path
 
 EPSILON = 0.02 # s
 DEFAULT_TEMPO = 120 # bpm
 path = "./ASAP/"
+RAD = 2 * np.pi
+
+def amin(a, b):
+    if abs(a) < b:
+        return a
+    return b
+
+def normalize_tempo(a, x=1):
+    """ All tempos can be expressed as a unique value of [x, 2x)  """
+    return np.exp(np.log(a / x) - np.log(2) * np.floor(np.log2(a / x))) * x
 
 def get_beats_from_txt(ann_path, accept_br=False):
     """Get the beats time from the text annotations
@@ -33,11 +45,6 @@ def get_downbeats_from_txt(ann_path):
     ann_df = pd.read_csv(Path(ann_path),header=None, names=["time","time2","type"],sep='\t')
     downbeats = [a["time"] for i,a in ann_df.iterrows() if a["type"].split(",")[0] == "db"]
     return downbeats
-
-def amin(a, b):
-    if abs(a) < b:
-        return a
-    return b
 
 def get_br_ind_from_txt(ann_path):
     ann_df = pd.read_csv(Path(ann_path),header=None, names=["time","time2","type"],sep='\t')
@@ -82,7 +89,6 @@ def get_interpolated_beats_index_from_txt(folder_path, midi = "midi_score", ann 
         return [i for i in range(len(beats)) if not i in exact_indexes or i in br_list]
     return [i for i in range(len(beats)) if not i in exact_indexes]
 
-import partitura as pt
 
 def access_by_id(notes, key_id="id"):
     result = {}
@@ -172,3 +178,9 @@ def get_score(perfo, type="onset", unit="beat"):
     except Exception as e:
         pass
     return [], []
+
+'''
+from py_measure import cpp_measure
+def measure(spectrum, delta, x=1, i=0):
+    return cpp_measure(spectrum, delta, x, i)
+'''

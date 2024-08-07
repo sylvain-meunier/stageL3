@@ -1,10 +1,10 @@
 import numpy as np
-from large_et_al import Estimator, RandomEstimator, TempoTracker, measure, normalize_tempo
-from util import get_matching_from_txt, fit_matching, find_recursive, path, EPSILON
-from pic import load_done, save, Timer, txt_to_pickle
 import matplotlib.pyplot as plt
+from pic import load_done, save, Timer, txt_to_pickle
+from models import Estimator, RandomEstimator, TempoTracker
+from util import get_matching_from_txt, fit_matching, find_recursive, path, EPSILON, normalize_tempo, measure
 
-save_file = "measure.txt"
+save_file = "./Results/Performance/measure.txt"
 
 init_bpm = 40
 l = []
@@ -36,12 +36,7 @@ for perfo in l:
     tmp = results[2]
     tmp2 = results[1]
     tmp = [normalize_tempo(tmp[i+1] / tmp2[i]) for i in range(len(tmp2) - 1)]
-    #save(perfo, tmp, path=save_file)
-    if "11-3" in perfo:
-        plt.hist(tmp, bins=100)
-        plt.title(str(perfo) + " " + str(measure(tmp, 0.075))[:8])
-        plt.show()
-        exit(0)
+    save(perfo, tmp, path=save_file)
     timer.update()
 
 txt_to_pickle(path=save_file)

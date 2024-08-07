@@ -1,6 +1,7 @@
 import numpy as np
 
 def find_local_minima(T, start, end):
+    """ Python implementation of Algorithm 1 """  
     assert(len(T) > 0)
 
     maxs = [t / (k+0.5) for t in T for k in range(int(t/end), int(t/start)+1)] # According to caracterization
@@ -9,7 +10,7 @@ def find_local_minima(T, start, end):
     potentials.sort() # Only a necessary condition
 
     if len(potentials) == 0: # Implies : T = {T[0]}
-        potentials = [T[0]/k for k in range(int(T[0]/end), int(T[0]/start)+1)[::-1]] # Already sorted
+        potentials = [T[0]/k for k in range(int(T[0]/end), int(T[0]/start)+1)[::-1] if k > 0] # Already sorted
         mins = potentials # In this specific case, the condition is an equivalence
     else:
         j = 0
@@ -25,11 +26,13 @@ def find_local_minima(T, start, end):
     mins.sort(reverse=1)
     return mins
 
-def f(a, t) :
-    return t/a - int(t/a)
 
 def g(a, t) :
+    def f(a, t) :
+        return t/a - int(t/a)
     return min(f(a, t), 1 - f(a, t))
 
+
 def error(a, T):
+    """ Transcription error """
     return a * np.max([g(a, t) for t in T])
